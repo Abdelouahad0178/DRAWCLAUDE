@@ -3,484 +3,178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ArchiDesign Pro - Éditeur de Plans Avancé</title>
+    <title>ArchiDesign - Éditeur de Plans Simple</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-    <!-- Loader -->
-    <div id="loader" class="loader">
-        <div class="loader-content">
-            <div class="loader-icon">🏛️</div>
-            <div class="loader-text">Chargement d'ArchiDesign Pro...</div>
-        </div>
-    </div>
-
-    <!-- Header -->
     <div class="header">
-        <div class="logo">🏛️ ArchiDesign Pro</div>
+        <div class="logo">🏛️ ArchiDesign</div>
         <div class="project-info">
-            <input type="text" id="projectName" placeholder="Nom du projet" value="Nouveau Plan">
-            <span class="save-indicator" id="saveIndicator">💾 Sauvegardé</span>
-            <span class="auto-save-indicator" id="autoSaveIndicator">🔄 Sauvegarde auto</span>
+            <input type="text" id="projectName" placeholder="Nom du projet" value="Mon Plan">
+            <span class="save-status" id="saveStatus">💾 Prêt</span>
         </div>
-        <div class="header-actions">
-            <button class="theme-toggle" id="themeToggle" title="Basculer le thème">🌙</button>
-            <button class="help-btn" id="helpBtn" title="Aide">❓</button>
-            <div class="user-info">
-                <span>Architecte: Jean Dupont</span>
-                <div class="avatar">👤</div>
-            </div>
+        <div class="user-info">
+            <span>Mode Simple</span>
         </div>
     </div>
 
     <div class="main-container">
-        <!-- Barre d'outils mobile -->
-        <button class="mobile-menu-toggle" id="mobileMenuToggle">☰</button>
-        
-        <div class="toolbar" id="toolbar">
-            <!-- Section Sélection -->
+        <!-- Barre d'outils simplifiée -->
+        <div class="toolbar">
             <div class="tool-section">
-                <h3>🎯 Sélection & Navigation</h3>
+                <h3>🎯 Outils</h3>
                 <div class="tool-grid">
-                    <button class="tool-btn active" data-tool="select" data-tooltip="Sélectionner et modifier des objets">
+                    <button class="tool-btn active" data-tool="select">
                         <span class="tool-icon">✋</span>
-                        <span class="tool-label">Sélection</span>
+                        <span>Sélection</span>
                     </button>
-                    <button class="tool-btn" data-tool="pan" data-tooltip="Déplacer la vue">
-                        <span class="tool-icon">🤚</span>
-                        <span class="tool-label">Déplacement</span>
+                    <button class="tool-btn" data-tool="eraser">
+                        <span class="tool-icon">🧽</span>
+                        <span>Gomme</span>
                     </button>
-                </div>
-            </div>
-
-            <!-- Section Murs et Structure -->
-            <div class="tool-section">
-                <h3>🧱 Structure</h3>
-                <div class="tool-grid">
-                    <button class="tool-btn" data-tool="wall" data-tooltip="Dessiner un mur simple">
+                    <button class="tool-btn" data-tool="wall">
                         <span class="tool-icon">🧱</span>
-                        <span class="tool-label">Mur</span>
+                        <span>Mur</span>
                     </button>
-                    <button class="tool-btn" data-tool="load-wall" data-tooltip="Dessiner un mur porteur">
+                    <button class="tool-btn" data-tool="voile">
                         <span class="tool-icon">🏗️</span>
-                        <span class="tool-label">Mur porteur</span>
+                        <span>Voile</span>
                     </button>
-                    <button class="tool-btn" data-tool="column" data-tooltip="Placer une colonne">
-                        <span class="tool-icon">🏛️</span>
-                        <span class="tool-label">Colonne</span>
-                    </button>
-                    <button class="tool-btn" data-tool="beam" data-tooltip="Dessiner une poutre">
-                        <span class="tool-icon">📏</span>
-                        <span class="tool-label">Poutre</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Section Ouvertures -->
-            <div class="tool-section">
-                <h3>🚪 Ouvertures</h3>
-                <div class="tool-grid">
-                    <button class="tool-btn" data-tool="door" data-tooltip="Placer une porte">
+                    <button class="tool-btn" data-tool="door">
                         <span class="tool-icon">🚪</span>
-                        <span class="tool-label">Porte</span>
+                        <span>Porte</span>
                     </button>
-                    <button class="tool-btn" data-tool="sliding-door" data-tooltip="Placer une porte coulissante">
-                        <span class="tool-icon">🔄</span>
-                        <span class="tool-label">Porte coulissante</span>
-                    </button>
-                    <button class="tool-btn" data-tool="window" data-tooltip="Placer une fenêtre">
+                    <button class="tool-btn" data-tool="window">
                         <span class="tool-icon">🪟</span>
-                        <span class="tool-label">Fenêtre</span>
+                        <span>Fenêtre</span>
                     </button>
-                    <button class="tool-btn" data-tool="bay-window" data-tooltip="Placer une baie vitrée">
-                        <span class="tool-icon">🏠</span>
-                        <span class="tool-label">Baie vitrée</span>
+                    <button class="tool-btn" data-tool="stairs">
+                        <span class="tool-icon">🪜</span>
+                        <span>Escalier</span>
                     </button>
-                </div>
-            </div>
-
-            <!-- Section Mobilier -->
-            <div class="tool-section">
-                <h3>🪑 Mobilier</h3>
-                <div class="tool-grid">
-                    <button class="tool-btn" data-tool="kitchen" data-tooltip="Placer un élément de cuisine">
-                        <span class="tool-icon">🍳</span>
-                        <span class="tool-label">Cuisine</span>
-                    </button>
-                    <button class="tool-btn" data-tool="bathroom" data-tooltip="Placer un élément de salle de bain">
-                        <span class="tool-icon">🛁</span>
-                        <span class="tool-label">SDB</span>
-                    </button>
-                    <button class="tool-btn" data-tool="stairs" data-tooltip="Dessiner un escalier">
-                        <span class="tool-icon">📐</span>
-                        <span class="tool-label">Escalier</span>
-                    </button>
-                    <button class="tool-btn" data-tool="furniture" data-tooltip="Choisir un meuble">
-                        <span class="tool-icon">🛋️</span>
-                        <span class="tool-label">Meuble</span>
+                    <button class="tool-btn" data-tool="elevator">
+                        <span class="tool-icon">🛗</span>
+                        <span>Ascenseur</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Section Formes -->
             <div class="tool-section">
-                <h3>📐 Formes</h3>
+                <h3>🔧 Techniques</h3>
                 <div class="tool-grid">
-                    <button class="tool-btn" data-tool="rectangle" data-tooltip="Dessiner un rectangle">
+                    <button class="tool-btn" data-tool="gaine">
+                        <span class="tool-icon">🔌</span>
+                        <span>Gaine</span>
+                    </button>
+                    <button class="tool-btn" data-tool="tech-space">
+                        <span class="tool-icon">⚙️</span>
+                        <span>R.Technique</span>
+                    </button>
+                    <button class="tool-btn" data-tool="rectangle">
                         <span class="tool-icon">▭</span>
-                        <span class="tool-label">Rectangle</span>
+                        <span>Rectangle</span>
                     </button>
-                    <button class="tool-btn" data-tool="circle" data-tooltip="Dessiner un cercle">
+                    <button class="tool-btn" data-tool="circle">
                         <span class="tool-icon">⭕</span>
-                        <span class="tool-label">Cercle</span>
+                        <span>Cercle</span>
                     </button>
-                    <button class="tool-btn" data-tool="polygon" data-tooltip="Dessiner un polygone">
-                        <span class="tool-icon">⬟</span>
-                        <span class="tool-label">Polygone</span>
-                    </button>
-                    <button class="tool-btn" data-tool="line" data-tooltip="Dessiner une ligne">
+                    <button class="tool-btn" data-tool="line">
                         <span class="tool-icon">➖</span>
-                        <span class="tool-label">Ligne</span>
+                        <span>Ligne</span>
                     </button>
-                </div>
-            </div>
-
-            <!-- Section Dimensions -->
-            <div class="tool-section">
-                <h3>📏 Cotation</h3>
-                <div class="tool-grid">
-                    <button class="tool-btn" data-tool="dimension" data-tooltip="Ajouter une cote">
-                        <span class="tool-icon">📏</span>
-                        <span class="tool-label">Cote</span>
-                    </button>
-                    <button class="tool-btn" data-tool="area" data-tooltip="Mesurer une surface">
-                        <span class="tool-icon">📊</span>
-                        <span class="tool-label">Surface</span>
-                    </button>
-                    <button class="tool-btn" data-tool="text" data-tooltip="Ajouter du texte">
+                    <button class="tool-btn" data-tool="text">
                         <span class="tool-icon">📝</span>
-                        <span class="tool-label">Texte</span>
-                    </button>
-                    <button class="tool-btn" data-tool="arrow" data-tooltip="Dessiner une flèche">
-                        <span class="tool-icon">➡️</span>
-                        <span class="tool-label">Flèche</span>
+                        <span>Texte</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Section Propriétés -->
             <div class="tool-section">
                 <h3>🎨 Propriétés</h3>
-                <div class="properties-panel">
-                    <div class="property-row">
-                        <span class="property-label">Couleur de trait:</span>
-                        <input type="color" id="strokeColor" class="color-input" value="#333333">
+                <div class="properties">
+                    <div class="prop-row">
+                        <label>Couleur de trait:</label>
+                        <input type="color" id="strokeColor" value="#333333">
                     </div>
-                    <div class="property-row">
-                        <span class="property-label">Couleur de remplissage:</span>
-                        <input type="color" id="fillColor" class="color-input" value="#ffffff">
+                    <div class="prop-row">
+                        <label>Couleur de remplissage:</label>
+                        <input type="color" id="fillColor" value="#ffffff">
                     </div>
-                    <div class="property-row">
-                        <span class="property-label">Épaisseur:</span>
-                        <input type="number" id="strokeWidth" class="dimension-input" value="2" min="1" max="20">
+                    <div class="prop-row">
+                        <label>Épaisseur:</label>
+                        <input type="range" id="strokeWidth" min="1" max="10" value="2">
+                        <span id="strokeValue">2</span>
                     </div>
-                    <div class="property-row">
-                        <span class="property-label">Opacité:</span>
+                    <div class="prop-row">
+                        <label>Opacité:</label>
                         <input type="range" id="opacity" min="0.1" max="1" step="0.1" value="1">
                         <span id="opacityValue">100%</span>
                     </div>
-                    <div class="property-row">
-                        <span class="property-label">Taille police:</span>
-                        <input type="number" id="fontSize" class="dimension-input" value="14" min="8" max="72">
-                    </div>
-                    <div class="property-row">
-                        <span class="property-label">Angle:</span>
-                        <input type="number" id="rotation" class="dimension-input" value="0" min="0" max="360">
-                        <span>°</span>
-                    </div>
                 </div>
             </div>
 
-            <!-- Section Calques -->
-            <div class="tool-section">
-                <h3>📋 Calques</h3>
-                <div class="layers-panel">
-                    <div class="layer-item active" data-layer="structure">
-                        <span class="layer-visibility" data-action="toggle-visibility">👁️</span>
-                        <span class="layer-name">Structure</span>
-                        <span class="layer-lock" data-action="toggle-lock">🔓</span>
-                    </div>
-                    <div class="layer-item" data-layer="furniture">
-                        <span class="layer-visibility" data-action="toggle-visibility">👁️</span>
-                        <span class="layer-name">Mobilier</span>
-                        <span class="layer-lock" data-action="toggle-lock">🔓</span>
-                    </div>
-                    <div class="layer-item" data-layer="dimensions">
-                        <span class="layer-visibility" data-action="toggle-visibility">👁️</span>
-                        <span class="layer-name">Cotations</span>
-                        <span class="layer-lock" data-action="toggle-lock">🔓</span>
-                    </div>
-                    <button class="add-layer-btn">+ Nouveau calque</button>
-                </div>
-            </div>
-
-            <!-- Section Paramètres -->
             <div class="tool-section">
                 <h3>⚙️ Paramètres</h3>
-                <div class="settings-panel">
-                    <div class="setting-row">
+                <div class="settings">
+                    <div class="setting-item">
                         <label>
                             <input type="checkbox" id="gridToggle" checked>
-                            <span>Grille</span>
+                            Afficher la grille
                         </label>
                     </div>
-                    <div class="setting-row">
+                    <div class="setting-item">
                         <label>
                             <input type="checkbox" id="snapToggle" checked>
-                            <span>Accrochage</span>
+                            Accrochage automatique
                         </label>
                     </div>
-                    <div class="setting-row">
+                    <div class="setting-item">
                         <label>
-                            <input type="checkbox" id="guidesToggle" checked>
-                            <span>Guides</span>
+                            <input type="checkbox" id="autoSelectToggle" checked>
+                            Revenir à la sélection après dessin
                         </label>
                     </div>
-                    <div class="setting-row">
-                        <label>
-                            <input type="checkbox" id="rulerToggle" checked>
-                            <span>Règles</span>
-                        </label>
-                    </div>
-                    <div class="property-row">
-                        <span class="property-label">Zoom:</span>
-                        <input type="range" id="zoomSlider" min="0.1" max="5" step="0.1" value="1">
+                    <div class="prop-row">
+                        <label>Zoom:</label>
+                        <input type="range" id="zoomSlider" min="0.5" max="3" step="0.1" value="1">
                         <span id="zoomValue">100%</span>
                     </div>
-                    <div class="property-row">
-                        <span class="property-label">Grille:</span>
-                        <select id="gridSize">
-                            <option value="10">10px</option>
-                            <option value="20" selected>20px</option>
-                            <option value="25">25px</option>
-                            <option value="50">50px</option>
-                        </select>
-                    </div>
-                    <div class="property-row">
-                        <span class="property-label">Unité:</span>
-                        <select id="unitSystem">
-                            <option value="px">Pixels</option>
-                            <option value="cm">Centimètres</option>
-                            <option value="m">Mètres</option>
-                        </select>
-                    </div>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>📋 Actions</h3>
+                <div class="action-buttons">
+                    <button class="action-btn" id="undoBtn">↶ Annuler</button>
+                    <button class="action-btn" id="redoBtn">↷ Refaire</button>
+                    <button class="action-btn" id="clearBtn">🗑️ Effacer</button>
+                    <button class="action-btn" id="saveBtn">💾 Sauvegarder</button>
+                    <button class="action-btn" id="loadBtn">📁 Charger</button>
+                    <button class="action-btn" id="exportBtn">📸 Exporter</button>
                 </div>
             </div>
         </div>
 
-        <div class="canvas-container">
-            <div class="canvas-header">
-                <div class="view-controls">
-                    <button class="view-btn active" data-view="2d">📐 Plan 2D</button>
-                    <button class="view-btn" data-view="3d">🏢 Vue 3D</button>
-                    <button class="view-btn" data-view="split">📊 Vue divisée</button>
-                </div>
-                <div class="measurement-display">
-                    <span id="cursorPosition">X: 0, Y: 0</span>
-                    <span id="selectionInfo"></span>
-                    <span id="distanceInfo"></span>
-                </div>
+        <!-- Zone de dessin -->
+        <div class="canvas-area">
+            <div class="canvas-info">
+                <span id="cursorPos">Position: X: 0, Y: 0</span>
+                <span id="selection">Aucune sélection</span>
             </div>
             
             <div class="canvas-wrapper">
-                <!-- Règles -->
-                <div class="ruler ruler-horizontal" id="rulerH"></div>
-                <div class="ruler ruler-vertical" id="rulerV"></div>
-                
-                <!-- Canvas principal -->
-                <canvas id="canvas" width="1000" height="700"></canvas>
-                
-                <!-- Guides -->
-                <div class="guides-container" id="guidesContainer"></div>
-                
-                <!-- Info-bulle de mesure -->
-                <div class="measurement-tooltip" id="measurementTooltip"></div>
-            </div>
-            
-            <div class="controls">
-                <div class="control-group">
-                    <button class="control-btn" id="newProject">🆕 Nouveau</button>
-                    <button class="control-btn" id="saveProject">💾 Sauvegarder</button>
-                    <button class="control-btn" id="loadProject">📁 Ouvrir</button>
-                    <button class="control-btn" id="templateBtn">📋 Templates</button>
-                </div>
-                <div class="control-group">
-                    <button class="control-btn" id="undoBtn">↶ Annuler</button>
-                    <button class="control-btn" id="redoBtn">↷ Refaire</button>
-                    <button class="control-btn" id="copyBtn">📋 Copier</button>
-                    <button class="control-btn" id="pasteBtn">📋 Coller</button>
-                    <button class="control-btn" id="duplicateBtn">📑 Dupliquer</button>
-                </div>
-                <div class="control-group">
-                    <button class="control-btn" id="groupBtn">🔗 Grouper</button>
-                    <button class="control-btn" id="ungroupBtn">🔓 Dégrouper</button>
-                    <button class="control-btn" id="alignBtn">📐 Aligner</button>
-                    <button class="control-btn" id="distributeBtn">📊 Distribuer</button>
-                </div>
-                <div class="control-group">
-                    <button class="control-btn" id="exportPNG">📸 PNG</button>
-                    <button class="control-btn" id="exportSVG">🎨 SVG</button>
-                    <button class="control-btn" id="exportPDF">📄 PDF</button>
-                    <button class="control-btn" id="exportDXF">📐 DXF</button>
-                    <button class="control-btn" id="printBtn">🖨️ Imprimer</button>
-                </div>
-                <div class="control-group">
-                    <button class="control-btn" id="zoomIn">🔍+</button>
-                    <button class="control-btn" id="zoomOut">🔍-</button>
-                    <button class="control-btn" id="zoomFit">🔍 Ajuster</button>
-                    <button class="control-btn" id="zoom100">100%</button>
-                    <button class="control-btn" id="clearCanvas">🗑️ Effacer</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Menu contextuel -->
-    <div id="contextMenu" class="context-menu">
-        <div class="context-menu-item" data-action="cut">✂️ Couper</div>
-        <div class="context-menu-item" data-action="copy">📋 Copier</div>
-        <div class="context-menu-item" data-action="paste">📋 Coller</div>
-        <div class="context-menu-separator"></div>
-        <div class="context-menu-item" data-action="duplicate">📑 Dupliquer</div>
-        <div class="context-menu-item" data-action="delete">🗑️ Supprimer</div>
-        <div class="context-menu-separator"></div>
-        <div class="context-menu-item" data-action="bring-forward">⬆️ Avancer</div>
-        <div class="context-menu-item" data-action="send-backward">⬇️ Reculer</div>
-        <div class="context-menu-item" data-action="bring-to-front">⏫ Premier plan</div>
-        <div class="context-menu-item" data-action="send-to-back">⏬ Arrière plan</div>
-        <div class="context-menu-separator"></div>
-        <div class="context-menu-item" data-action="properties">🎨 Propriétés</div>
-    </div>
-
-    <!-- Modal Mobilier -->
-    <div id="furnitureModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Choisir un meuble</h2>
-            <div class="furniture-categories">
-                <button class="category-btn active" data-category="salon">Salon</button>
-                <button class="category-btn" data-category="chambre">Chambre</button>
-                <button class="category-btn" data-category="cuisine">Cuisine</button>
-                <button class="category-btn" data-category="bureau">Bureau</button>
-            </div>
-            <div class="furniture-grid" id="furnitureGrid">
-                <!-- Généré dynamiquement -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Templates -->
-    <div id="templateModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Choisir un template</h2>
-            <div class="template-grid">
-                <div class="template-item" data-template="studio">
-                    <div class="template-preview">🏠</div>
-                    <div class="template-name">Studio 25m²</div>
-                </div>
-                <div class="template-item" data-template="t2">
-                    <div class="template-preview">🏡</div>
-                    <div class="template-name">Appartement T2</div>
-                </div>
-                <div class="template-item" data-template="t3">
-                    <div class="template-preview">🏘️</div>
-                    <div class="template-name">Appartement T3</div>
-                </div>
-                <div class="template-item" data-template="maison">
-                    <div class="template-preview">🏰</div>
-                    <div class="template-name">Maison 100m²</div>
-                </div>
-                <div class="template-item" data-template="bureau">
-                    <div class="template-preview">🏢</div>
-                    <div class="template-name">Bureau Open Space</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Alignement -->
-    <div id="alignModal" class="modal">
-        <div class="modal-content modal-small">
-            <span class="close">&times;</span>
-            <h2>Aligner les objets</h2>
-            <div class="align-grid">
-                <button class="align-btn" data-align="left" title="Aligner à gauche">⬅️</button>
-                <button class="align-btn" data-align="center-h" title="Centrer horizontalement">↔️</button>
-                <button class="align-btn" data-align="right" title="Aligner à droite">➡️</button>
-                <button class="align-btn" data-align="top" title="Aligner en haut">⬆️</button>
-                <button class="align-btn" data-align="center-v" title="Centrer verticalement">↕️</button>
-                <button class="align-btn" data-align="bottom" title="Aligner en bas">⬇️</button>
-            </div>
-            <h3>Distribuer</h3>
-            <div class="distribute-grid">
-                <button class="distribute-btn" data-distribute="horizontal" title="Distribuer horizontalement">↔️ Horizontal</button>
-                <button class="distribute-btn" data-distribute="vertical" title="Distribuer verticalement">↕️ Vertical</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Aide -->
-    <div id="helpModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Aide - ArchiDesign Pro</h2>
-            <div class="help-content">
-                <h3>🎯 Raccourcis clavier</h3>
-                <ul class="shortcuts-list">
-                    <li><kbd>Ctrl</kbd> + <kbd>Z</kbd> : Annuler</li>
-                    <li><kbd>Ctrl</kbd> + <kbd>Y</kbd> : Refaire</li>
-                    <li><kbd>Ctrl</kbd> + <kbd>C</kbd> : Copier</li>
-                    <li><kbd>Ctrl</kbd> + <kbd>V</kbd> : Coller</li>
-                    <li><kbd>Ctrl</kbd> + <kbd>S</kbd> : Sauvegarder</li>
-                    <li><kbd>Ctrl</kbd> + <kbd>G</kbd> : Grouper</li>
-                    <li><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>G</kbd> : Dégrouper</li>
-                    <li><kbd>Delete</kbd> : Supprimer</li>
-                    <li><kbd>Espace</kbd> : Mode pan temporaire</li>
-                    <li><kbd>Shift</kbd> : Contraindre les proportions</li>
-                </ul>
-                <h3>💡 Astuces</h3>
-                <ul>
-                    <li>Maintenez Shift en dessinant pour des formes parfaites</li>
-                    <li>Double-cliquez pour éditer le texte</li>
-                    <li>Utilisez la molette pour zoomer</li>
-                    <li>Clic droit pour le menu contextuel</li>
-                </ul>
+                <canvas id="canvas" width="900" height="600"></canvas>
             </div>
         </div>
     </div>
 
     <!-- Barre de statut -->
     <div class="status-bar">
-        <div class="status-left">
-            <span id="objectCount">Objets: 0</span>
-            <span id="selectedCount"></span>
-            <span id="layerStatus">Calque: Structure</span>
-        </div>
-        <div class="status-center">
-            <span id="canvasSize">1000 × 700 px</span>
-            <span id="unitDisplay">Unité: px</span>
-        </div>
-        <div class="status-right">
-            <span id="zoomStatus">Zoom: 100%</span>
-            <span id="memoryStatus">Mémoire: OK</span>
-        </div>
+        <span id="objectCount">Objets: 0</span>
+        <span id="canvasInfo">900 × 600 px</span>
+        <span id="zoomInfo">Zoom: 100%</span>
     </div>
-
-    <!-- Toast notifications -->
-    <div id="toastContainer" class="toast-container"></div>
 
     <script src="script.js"></script>
 </body>

@@ -1,1281 +1,1329 @@
-class ArchitectApp {
+// Application ArchiDesign Complète
+class SimpleArchitectApp {
     constructor() {
         this.canvas = null;
         this.currentTool = 'select';
         this.isDrawing = false;
-        this.isPanning = false;
         this.startX = 0;
         this.startY = 0;
-        this.lastPosX = 0;
-        this.lastPosY = 0;
         this.gridSize = 20;
+        this.snapEnabled = true;
         this.history = [];
         this.historyIndex = -1;
-        this.clipboard = null;
-        this.hasUnsavedChanges = false;
-        this.autoSaveInterval = null;
-        this.unitSystem = 'px';
-        this.pixelsPerUnit = { px: 1, cm: 37.8, m: 3780 };
-        
-        // Calques
-        this.layers = {
-            structure: { visible: true, locked: false, objects: [] },
-            furniture: { visible: true, locked: false, objects: [] },
-            dimensions: { visible: true, locked: false, objects: [] }
-        };
-        this.currentLayer = 'structure';
-        
-        // Paramètres
-        this.snapEnabled = true;
-        this.guidesEnabled = true;
-        this.guides = { horizontal: [], vertical: [] };
-        this.theme = 'light';
-        
-        // Catégories de mobilier
-        this.furnitureCategories = {
-            salon: [
-                { id: 'sofa', icon: '🛋️', name: 'Canapé' },
-                { id: 'armchair', icon: '🪑', name: 'Fauteuil' },
-                { id: 'coffee-table', icon: '🪵', name: 'Table basse' },
-                { id: 'tv-stand', icon: '📺', name: 'Meuble TV' },
-                { id: 'bookshelf', icon: '📚', name: 'Bibliothèque' }
-            ],
-            chambre: [
-                { id: 'bed', icon: '🛏️', name: 'Lit' },
-                { id: 'wardrobe', icon: '🚪', name: 'Armoire' },
-                { id: 'nightstand', icon: '🗄️', name: 'Table de nuit' },
-                { id: 'dresser', icon: '🗃️', name: 'Commode' }
-            ],
-            cuisine: [
-                { id: 'fridge', icon: '🧊', name: 'Réfrigérateur' },
-                { id: 'stove', icon: '🔥', name: 'Cuisinière' },
-                { id: 'dishwasher', icon: '🍽️', name: 'Lave-vaisselle' },
-                { id: 'kitchen-island', icon: '🏝️', name: 'Îlot' }
-            ],
-            bureau: [
-                { id: 'desk', icon: '🖥️', name: 'Bureau' },
-                { id: 'office-chair', icon: '🪑', name: 'Chaise bureau' },
-                { id: 'filing-cabinet', icon: '🗄️', name: 'Classeur' }
-            ]
-        };
-        
+        this.autoSelectAfterDraw = true;
+        this.creatingObject = false;
+
         this.init();
     }
 
     init() {
-        this.showLoader();
+        this.setupCanvas();
+        this.setupEventListeners();
+        this.drawGrid();
+        this.saveState();
+        this.updateUI();
         
-        setTimeout(() => {
-            this.initCanvas();
-            this.initEventListeners();
-            this.initUI();
-            this.drawGrid();
-            this.initRulers();
-            this.loadTheme();
-            this.saveState();
-            this.startAutoSave();
-            this.hideLoader();
-            
-            console.log('🏛️ ArchiDesign Pro initialisé avec succès!');
-            this.showToast('ArchiDesign Pro prêt!', 'success');
-        }, 1000);
+        console.log('🏛️ ArchiDesign initialisé avec succès!');
     }
 
-    // ========================================
-    // Gestion du Canvas
-    // ========================================
-    
-    initCanvas() {
+    // Configuration du canvas
+    setupCanvas() {
         this.canvas = new fabric.Canvas('canvas', {
             backgroundColor: '#f8f9fa',
-            selection: true,
-            preserveObjectStacking: true,
-            renderOnAddRemove: false,
-            enableRetinaScaling: true
+            selection: true
         });
 
-        this.canvas.selection = this.currentTool === 'select';
+        // Événements du canvas
+        this.canvas.on('mouse:down', this.handleMouseDown.bind(this));
+        this.canvas.on('mouse:move', this.handleMouseMove.bind(this));
+        this.canvas.on('mouse:up', this.handleMouseUp.bind(this));
+        this.canvas.on('selection:created', this.handleSelection.bind(this));
+        this.canvas.on('selection:updated', this.handleSelection.bind(this));
+        this.canvas.on('selection:cleared', this.handleSelectionClear.bind(this));
+        this.canvas.on('object:added', this.updateObjectCount.bind(this));
+        this.canvas.on('object:removed', this.updateObjectCount.bind(this));
+
+        // Suivi du curseur
+        this.canvas.on('mouse:move', (e) => {
+            const pointer = this.canvas.getPointer(e.e);
+            const cursorPos = document.getElementById('cursorPos');
+            if (cursorPos) {
+                cursorPos.textContent = `Position: X: ${Math.round(pointer.x)}, Y: ${Math.round(pointer.y)}`;
+            }
+        });
     }
 
-    // ========================================
-    // Événements
-    // ========================================
-    
-    initEventListeners() {
+    // Configuration des événements
+    setupEventListeners() {
         // Outils
         document.querySelectorAll('.tool-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const toolBtn = e.target.closest('.tool-btn');
-                if (toolBtn) {
-                    this.selectTool(toolBtn.dataset.tool);
-                }
-            });
+            btn.addEventListener('click', () => this.selectTool(btn.dataset.tool));
         });
 
         // Propriétés
-        document.getElementById('strokeColor').addEventListener('change', this.updateProperties.bind(this));
-        document.getElementById('fillColor').addEventListener('change', this.updateProperties.bind(this));
-        document.getElementById('strokeWidth').addEventListener('change', this.updateProperties.bind(this));
-        document.getElementById('opacity').addEventListener('input', this.updateOpacity.bind(this));
-        document.getElementById('fontSize').addEventListener('change', this.updateProperties.bind(this));
-        document.getElementById('rotation').addEventListener('change', this.updateRotation.bind(this));
+        const strokeColor = document.getElementById('strokeColor');
+        const fillColor = document.getElementById('fillColor');
+        const strokeWidth = document.getElementById('strokeWidth');
+        const opacity = document.getElementById('opacity');
+
+        if (strokeColor) strokeColor.addEventListener('change', this.updateProperties.bind(this));
+        if (fillColor) fillColor.addEventListener('change', this.updateProperties.bind(this));
+        if (strokeWidth) strokeWidth.addEventListener('input', this.updateStrokeWidth.bind(this));
+        if (opacity) opacity.addEventListener('input', this.updateOpacity.bind(this));
 
         // Paramètres
-        document.getElementById('gridToggle').addEventListener('change', this.toggleGrid.bind(this));
-        document.getElementById('snapToggle').addEventListener('change', this.toggleSnap.bind(this));
-        document.getElementById('guidesToggle').addEventListener('change', this.toggleGuides.bind(this));
-        document.getElementById('rulerToggle').addEventListener('change', this.toggleRulers.bind(this));
-        document.getElementById('zoomSlider').addEventListener('input', this.updateZoom.bind(this));
-        document.getElementById('gridSize').addEventListener('change', this.updateGridSize.bind(this));
-        document.getElementById('unitSystem').addEventListener('change', this.updateUnitSystem.bind(this));
+        const gridToggle = document.getElementById('gridToggle');
+        const snapToggle = document.getElementById('snapToggle');
+        const autoSelectToggle = document.getElementById('autoSelectToggle');
+        const zoomSlider = document.getElementById('zoomSlider');
 
-        // Contrôles
-        document.getElementById('newProject').addEventListener('click', this.newProject.bind(this));
-        document.getElementById('saveProject').addEventListener('click', this.saveProject.bind(this));
-        document.getElementById('loadProject').addEventListener('click', this.loadProject.bind(this));
-        document.getElementById('templateBtn').addEventListener('click', this.showTemplateModal.bind(this));
-        document.getElementById('undoBtn').addEventListener('click', this.undo.bind(this));
-        document.getElementById('redoBtn').addEventListener('click', this.redo.bind(this));
-        document.getElementById('copyBtn').addEventListener('click', this.copy.bind(this));
-        document.getElementById('pasteBtn').addEventListener('click', this.paste.bind(this));
-        document.getElementById('duplicateBtn').addEventListener('click', this.duplicate.bind(this));
-        document.getElementById('groupBtn').addEventListener('click', this.groupObjects.bind(this));
-        document.getElementById('ungroupBtn').addEventListener('click', this.ungroupObjects.bind(this));
-        document.getElementById('alignBtn').addEventListener('click', this.showAlignModal.bind(this));
-        document.getElementById('distributeBtn').addEventListener('click', this.showAlignModal.bind(this));
-        document.getElementById('exportPNG').addEventListener('click', this.exportPNG.bind(this));
-        document.getElementById('exportSVG').addEventListener('click', this.exportSVG.bind(this));
-        document.getElementById('exportPDF').addEventListener('click', this.exportPDF.bind(this));
-        document.getElementById('exportDXF').addEventListener('click', this.exportDXF.bind(this));
-        document.getElementById('printBtn').addEventListener('click', this.print.bind(this));
-        document.getElementById('zoomIn').addEventListener('click', this.zoomIn.bind(this));
-        document.getElementById('zoomOut').addEventListener('click', this.zoomOut.bind(this));
-        document.getElementById('zoomFit').addEventListener('click', this.zoomFit.bind(this));
-        document.getElementById('zoom100').addEventListener('click', this.zoom100.bind(this));
-        document.getElementById('clearCanvas').addEventListener('click', this.clearCanvas.bind(this));
+        if (gridToggle) gridToggle.addEventListener('change', this.toggleGrid.bind(this));
+        if (snapToggle) snapToggle.addEventListener('change', this.toggleSnap.bind(this));
+        if (autoSelectToggle) autoSelectToggle.addEventListener('change', this.toggleAutoSelect.bind(this));
+        if (zoomSlider) zoomSlider.addEventListener('input', this.updateZoom.bind(this));
 
-        // Calques
-        document.querySelectorAll('.layer-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                const action = e.target.dataset.action;
-                const layerName = item.dataset.layer;
-                
-                if (action === 'toggle-visibility') {
-                    this.toggleLayerVisibility(layerName);
-                } else if (action === 'toggle-lock') {
-                    this.toggleLayerLock(layerName);
-                } else {
-                    this.selectLayer(layerName);
-                }
-            });
-        });
+        // Actions
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const loadBtn = document.getElementById('loadBtn');
+        const exportBtn = document.getElementById('exportBtn');
 
-        document.querySelector('.add-layer-btn').addEventListener('click', this.addNewLayer.bind(this));
+        if (undoBtn) undoBtn.addEventListener('click', this.undo.bind(this));
+        if (redoBtn) redoBtn.addEventListener('click', this.redo.bind(this));
+        if (clearBtn) clearBtn.addEventListener('click', this.clearCanvas.bind(this));
+        if (saveBtn) saveBtn.addEventListener('click', this.saveProject.bind(this));
+        if (loadBtn) loadBtn.addEventListener('click', this.loadProject.bind(this));
+        if (exportBtn) exportBtn.addEventListener('click', this.exportImage.bind(this));
 
-        // Modales
-        document.getElementById('furnitureModal').addEventListener('click', this.handleModalClick.bind(this));
-        document.getElementById('templateModal').addEventListener('click', this.handleModalClick.bind(this));
-        document.getElementById('alignModal').addEventListener('click', this.handleModalClick.bind(this));
-        document.getElementById('helpModal').addEventListener('click', this.handleModalClick.bind(this));
-        
-        document.querySelectorAll('.close').forEach(closeBtn => {
-            closeBtn.addEventListener('click', this.closeAllModals.bind(this));
-        });
-
-        document.querySelectorAll('.category-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.showFurnitureCategory(e.target.dataset.category));
-        });
-
-        document.querySelectorAll('.template-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                const template = e.target.closest('.template-item').dataset.template;
-                this.loadTemplate(template);
-            });
-        });
-
-        document.querySelectorAll('.align-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.alignObjects(e.target.dataset.align));
-        });
-
-        document.querySelectorAll('.distribute-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.distributeObjects(e.target.dataset.distribute));
-        });
-
-        document.addEventListener('contextmenu', this.showContextMenu.bind(this));
-        document.addEventListener('click', this.hideContextMenu.bind(this));
-        
-        document.querySelectorAll('.context-menu-item').forEach(item => {
-            item.addEventListener('click', (e) => this.handleContextMenuAction(e.target.dataset.action));
-        });
-
-        document.getElementById('themeToggle').addEventListener('click', this.toggleTheme.bind(this));
-        document.getElementById('helpBtn').addEventListener('click', this.showHelpModal.bind(this));
-        document.getElementById('mobileMenuToggle').addEventListener('click', this.toggleMobileMenu.bind(this));
-
-        document.querySelectorAll('.view-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.switchView(e.target.dataset.view));
-        });
-
+        // Raccourcis clavier
         document.addEventListener('keydown', this.handleKeyboard.bind(this));
-        document.addEventListener('keyup', this.handleKeyUp.bind(this));
-        window.addEventListener('resize', this.handleResize.bind(this));
-        window.addEventListener('beforeunload', this.handleBeforeUnload.bind(this));
-
-        // Événements du canvas
-        this.canvas.on('mouse:down', this.onMouseDown.bind(this));
-        this.canvas.on('mouse:move', this.onMouseMove.bind(this));
-        this.canvas.on('mouse:up', this.onMouseUp.bind(this));
-        this.canvas.on('mouse:wheel', this.onMouseWheel.bind(this));
-        this.canvas.on('selection:created', this.onSelectionCreated.bind(this));
-        this.canvas.on('selection:updated', this.onSelectionUpdated.bind(this));
-        this.canvas.on('selection:cleared', this.onSelectionCleared.bind(this));
-        this.canvas.on('object:added', this.onObjectAdded.bind(this));
-        this.canvas.on('object:removed', this.onObjectRemoved.bind(this));
-        this.canvas.on('object:modified', this.onObjectModified.bind(this));
-        this.canvas.on('object:rotating', this.onObjectRotating.bind(this));
-        this.canvas.on('object:scaling', this.onObjectScaling.bind(this));
-        this.canvas.on('object:moving', this.onObjectMoving.bind(this));
     }
 
-    // ========================================
-    // Gestion des outils
-    // ========================================
-    
+    // Sélection d'outil
     selectTool(tool) {
-        if (!tool) return;
+        // Nettoyer l'état précédent
+        this.isDrawing = false;
+        this.removePreview();
+        this.hideEraserIndicator();
         
+        // Mettre à jour l'interface
         document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-        const btn = document.querySelector(`[data-tool="${tool}"]`);
-        if (btn) {
-            btn.classList.add('active');
-            this.currentTool = tool;
+        const selectedBtn = document.querySelector(`[data-tool="${tool}"]`);
+        if (selectedBtn) {
+            selectedBtn.classList.add('active');
+        }
+        
+        this.currentTool = tool;
+
+        // Mettre à jour les classes CSS du canvas wrapper
+        const canvasWrapper = document.querySelector('.canvas-wrapper');
+        if (canvasWrapper) {
+            canvasWrapper.classList.remove('eraser-mode', 'drawing-mode', 'select-mode');
+            
+            if (tool === 'eraser') {
+                canvasWrapper.classList.add('eraser-mode');
+            } else if (tool === 'select') {
+                canvasWrapper.classList.add('select-mode');
+            } else {
+                canvasWrapper.classList.add('drawing-mode');
+            }
         }
 
+        // Configuration du canvas selon l'outil
         if (tool === 'select') {
             this.canvas.defaultCursor = 'default';
             this.canvas.selection = true;
             this.canvas.forEachObject(obj => {
-                obj.selectable = true;
-                obj.evented = true;
+                if (!obj.isGrid && !obj.isPreview && !obj.isEraserIndicator) {
+                    obj.selectable = true;
+                    obj.evented = true;
+                }
             });
-        } else if (tool === 'pan') {
-            this.canvas.defaultCursor = 'grab';
-            this.canvas.selection = false;
-            this.canvas.forEachObject(obj => {
-                obj.selectable = false;
-                obj.evented = false;
-            });
+            
+            const selectionInfo = document.getElementById('selection');
+            if (selectionInfo) {
+                selectionInfo.textContent = 'Mode sélection actif';
+            }
         } else {
             this.canvas.defaultCursor = 'crosshair';
             this.canvas.selection = false;
             this.canvas.discardActiveObject();
             this.canvas.forEachObject(obj => {
-                obj.selectable = false;
-                obj.evented = false;
+                if (!obj.isGrid && !obj.isPreview && !obj.isEraserIndicator) {
+                    obj.selectable = false;
+                    obj.evented = false;
+                }
             });
-        }
-        
-        if (tool === 'furniture') {
-            this.showFurnitureModal();
+            
+            // Messages d'état pour chaque outil
+            const toolNames = {
+                'wall': 'Dessiner des murs',
+                'voile': 'Dessiner des voiles béton',
+                'door': 'Placer des portes',
+                'window': 'Placer des fenêtres', 
+                'stairs': 'Dessiner des escaliers',
+                'elevator': 'Placer des ascenseurs',
+                'gaine': 'Dessiner des gaines techniques',
+                'tech-space': 'Placer des espaces techniques',
+                'rectangle': 'Dessiner des rectangles',
+                'circle': 'Dessiner des cercles',
+                'line': 'Dessiner des lignes',
+                'text': 'Ajouter du texte',
+                'eraser': 'Effacer des éléments (maintenir le clic)'
+            };
+            
+            const selectionInfo = document.getElementById('selection');
+            if (selectionInfo) {
+                selectionInfo.textContent = toolNames[tool] || `Outil ${tool} actif`;
+            }
         }
 
         this.canvas.renderAll();
+        console.log(`Outil sélectionné: ${tool}`);
     }
 
-    // ========================================
-    // Événements de souris
-    // ========================================
-    
-    onMouseDown(e) {
-        const pointer = this.canvas.getPointer(e.e);
-        
-        if (this.currentTool === 'pan' || (e.e.spaceKey && this.currentTool !== 'select')) {
-            this.isPanning = true;
-            this.lastPosX = e.e.clientX;
-            this.lastPosY = e.e.clientY;
-            this.canvas.defaultCursor = 'grabbing';
-            return;
-        }
-        
+    // Gestion de la souris
+    handleMouseDown(e) {
         if (this.currentTool === 'select') return;
         
+        const pointer = this.canvas.getPointer(e.e);
         this.startX = this.snapEnabled ? this.snapToGrid(pointer.x) : pointer.x;
         this.startY = this.snapEnabled ? this.snapToGrid(pointer.y) : pointer.y;
         this.isDrawing = true;
-        
-        if (this.guidesEnabled) {
-            this.showGuides(this.startX, this.startY);
+
+        // Outil gomme - logique spéciale
+        if (this.currentTool === 'eraser') {
+            this.handleEraser(pointer);
+            return;
+        }
+
+        // Pour les outils qui créent des objets au clic
+        if (['door', 'window', 'text', 'elevator', 'tech-space'].includes(this.currentTool)) {
+            this.createObject(this.startX, this.startY, this.startX, this.startY);
+            this.isDrawing = false;
+            this.saveState();
+            
+            if (this.autoSelectAfterDraw) {
+                setTimeout(() => this.selectTool('select'), 100);
+            }
         }
     }
 
-    onMouseMove(e) {
-        const pointer = this.canvas.getPointer(e.e);
+    handleMouseMove(e) {
+        if (!this.isDrawing || this.currentTool === 'select') return;
         
-        const x = Math.round(pointer.x);
-        const y = Math.round(pointer.y);
-        const unitX = this.convertToUnit(x);
-        const unitY = this.convertToUnit(y);
-        document.getElementById('cursorPosition').textContent = 
-            `X: ${unitX}${this.unitSystem}, Y: ${unitY}${this.unitSystem}`;
-        
-        if (this.isPanning) {
-            const deltaX = e.e.clientX - this.lastPosX;
-            const deltaY = e.e.clientY - this.lastPosY;
-            
-            this.canvas.relativePan({ x: deltaX, y: deltaY });
-            this.lastPosX = e.e.clientX;
-            this.lastPosY = e.e.clientY;
+        // Outil gomme
+        if (this.currentTool === 'eraser') {
+            const pointer = this.canvas.getPointer(e.e);
+            this.handleEraser(pointer);
             return;
         }
         
+        // Prévisualisation pour les outils glisser-déposer
+        if (['wall', 'line', 'rectangle', 'circle', 'voile', 'stairs', 'gaine'].includes(this.currentTool)) {
+            const pointer = this.canvas.getPointer(e.e);
+            const endX = this.snapEnabled ? this.snapToGrid(pointer.x) : pointer.x;
+            const endY = this.snapEnabled ? this.snapToGrid(pointer.y) : pointer.y;
+            
+            this.removePreview();
+            
+            const distance = Math.sqrt(Math.pow(endX - this.startX, 2) + Math.pow(endY - this.startY, 2));
+            if (distance > 5) {
+                this.createPreview(this.startX, this.startY, endX, endY);
+            }
+        }
+    }
+
+    handleMouseUp(e) {
         if (!this.isDrawing || this.currentTool === 'select') return;
         
+        // Arrêter la gomme
+        if (this.currentTool === 'eraser') {
+            this.hideEraserIndicator();
+            this.saveState();
+            this.isDrawing = false;
+            return;
+        }
+        
+        const pointer = this.canvas.getPointer(e.e);
         const endX = this.snapEnabled ? this.snapToGrid(pointer.x) : pointer.x;
         const endY = this.snapEnabled ? this.snapToGrid(pointer.y) : pointer.y;
         
-        let constrainedEndX = endX;
-        let constrainedEndY = endY;
+        this.removePreview();
         
-        if (e.e.shiftKey) {
-            const deltaX = Math.abs(endX - this.startX);
-            const deltaY = Math.abs(endY - this.startY);
-            const maxDelta = Math.max(deltaX, deltaY);
+        // Créer l'objet pour les outils glisser-déposer
+        if (['wall', 'line', 'rectangle', 'circle', 'voile', 'stairs', 'gaine'].includes(this.currentTool)) {
+            const distance = Math.sqrt(Math.pow(endX - this.startX, 2) + Math.pow(endY - this.startY, 2));
             
-            constrainedEndX = this.startX + (endX > this.startX ? maxDelta : -maxDelta);
-            constrainedEndY = this.startY + (endY > this.startY ? maxDelta : -maxDelta);
-        }
-        
-        this.showPreview(this.startX, this.startY, constrainedEndX, constrainedEndY);
-        this.showDistanceWhileDrawing(this.startX, this.startY, constrainedEndX, constrainedEndY);
-        
-        if (this.guidesEnabled) {
-            this.updateGuides(constrainedEndX, constrainedEndY);
-        }
-    }
-
-    onMouseUp(e) {
-        if (this.isPanning) {
-            this.isPanning = false;
-            this.canvas.defaultCursor = this.currentTool === 'pan' ? 'grab' : 'default';
-            return;
-        }
-        
-        if (!this.isDrawing || this.currentTool === 'select') return;
-        
-        const pointer = this.canvas.getPointer(e.e);
-        let endX = this.snapEnabled ? this.snapToGrid(pointer.x) : pointer.x;
-        let endY = this.snapEnabled ? this.snapToGrid(pointer.y) : pointer.y;
-        
-        if (e.e.shiftKey) {
-            const deltaX = Math.abs(endX - this.startX);
-            const deltaY = Math.abs(endY - this.startY);
-            const maxDelta = Math.max(deltaX, deltaY);
-            
-            endX = this.startX + (endX > this.startX ? maxDelta : -maxDelta);
-            endY = this.startY + (endY > this.startY ? maxDelta : -maxDelta);
-        }
-        
-        const minDistance = 5;
-        const distance = Math.sqrt(Math.pow(endX - this.startX, 2) + Math.pow(endY - this.startY, 2));
-        
-        if (distance > minDistance || ['column', 'door', 'window', 'text'].includes(this.currentTool)) {
-            this.createObject(this.currentTool, this.startX, this.startY, endX, endY);
+            if (distance > 5) {
+                this.createObject(this.startX, this.startY, endX, endY);
+                this.saveState();
+                
+                if (this.autoSelectAfterDraw) {
+                    setTimeout(() => this.selectTool('select'), 100);
+                }
+            }
         }
         
         this.isDrawing = false;
-        this.clearPreview();
-        this.hideGuides();
-        this.hideDistanceTooltip();
     }
 
-    onMouseWheel(e) {
-        e.e.preventDefault();
-        e.e.stopPropagation();
-        
-        const delta = e.e.deltaY;
-        let zoom = this.canvas.getZoom();
-        zoom *= 0.999 ** delta;
-        
-        if (zoom > 5) zoom = 5;
-        if (zoom < 0.1) zoom = 0.1;
-        
-        this.canvas.zoomToPoint({ x: e.e.offsetX, y: e.e.offsetY }, zoom);
-        this.updateZoomDisplay();
-        
-        document.getElementById('zoomSlider').value = zoom;
+    // Prévisualisation
+    createPreview(x1, y1, x2, y2) {
+        try {
+            const strokeColorInput = document.getElementById('strokeColor');
+            const strokeWidthInput = document.getElementById('strokeWidth');
+            
+            const strokeColor = strokeColorInput?.value || '#333333';
+            const strokeWidth = parseInt(strokeWidthInput?.value || '2');
+
+            let preview = null;
+
+            switch(this.currentTool) {
+                case 'wall':
+                case 'line':
+                    preview = new fabric.Line([x1, y1, x2, y2], {
+                        stroke: strokeColor,
+                        strokeWidth: strokeWidth,
+                        opacity: 0.5,
+                        selectable: false,
+                        evented: false,
+                        isPreview: true,
+                        strokeDashArray: [5, 5]
+                    });
+                    break;
+
+                case 'voile':
+                    const voileWidth = Math.abs(x2 - x1) || 20;
+                    const voileHeight = Math.abs(y2 - y1) || 100;
+                    if (voileWidth > 5 || voileHeight > 5) {
+                        preview = new fabric.Rect({
+                            left: Math.min(x1, x2),
+                            top: Math.min(y1, y2),
+                            width: Math.max(voileWidth, 20),
+                            height: Math.max(voileHeight, 50),
+                            fill: 'transparent',
+                            stroke: strokeColor,
+                            strokeWidth: strokeWidth * 2,
+                            opacity: 0.5,
+                            selectable: false,
+                            evented: false,
+                            isPreview: true,
+                            strokeDashArray: [5, 5]
+                        });
+                    }
+                    break;
+
+                case 'gaine':
+                    const gaineWidth = Math.abs(x2 - x1) || 40;
+                    const gaineHeight = Math.abs(y2 - y1) || 40;
+                    if (gaineWidth > 5 || gaineHeight > 5) {
+                        preview = new fabric.Rect({
+                            left: Math.min(x1, x2),
+                            top: Math.min(y1, y2),
+                            width: Math.max(gaineWidth, 30),
+                            height: Math.max(gaineHeight, 30),
+                            fill: 'transparent',
+                            stroke: strokeColor,
+                            strokeWidth: strokeWidth,
+                            opacity: 0.5,
+                            selectable: false,
+                            evented: false,
+                            isPreview: true,
+                            strokeDashArray: [10, 5]
+                        });
+                    }
+                    break;
+
+                case 'stairs':
+                    const stairsWidth = Math.abs(x2 - x1) || 80;
+                    const stairsHeight = Math.abs(y2 - y1) || 120;
+                    if (stairsWidth > 5 || stairsHeight > 5) {
+                        preview = new fabric.Rect({
+                            left: Math.min(x1, x2),
+                            top: Math.min(y1, y2),
+                            width: Math.max(stairsWidth, 80),
+                            height: Math.max(stairsHeight, 120),
+                            fill: 'transparent',
+                            stroke: strokeColor,
+                            strokeWidth: strokeWidth,
+                            opacity: 0.5,
+                            selectable: false,
+                            evented: false,
+                            isPreview: true,
+                            strokeDashArray: [5, 5]
+                        });
+                    }
+                    break;
+
+                case 'rectangle':
+                    const width = Math.abs(x2 - x1);
+                    const height = Math.abs(y2 - y1);
+                    if (width > 5 && height > 5) {
+                        preview = new fabric.Rect({
+                            left: Math.min(x1, x2),
+                            top: Math.min(y1, y2),
+                            width: width,
+                            height: height,
+                            fill: 'transparent',
+                            stroke: strokeColor,
+                            strokeWidth: strokeWidth,
+                            opacity: 0.5,
+                            selectable: false,
+                            evented: false,
+                            isPreview: true,
+                            strokeDashArray: [5, 5]
+                        });
+                    }
+                    break;
+
+                case 'circle':
+                    const radius = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1)) / 2;
+                    if (radius > 5) {
+                        preview = new fabric.Circle({
+                            left: x1 - radius,
+                            top: y1 - radius,
+                            radius: radius,
+                            fill: 'transparent',
+                            stroke: strokeColor,
+                            strokeWidth: strokeWidth,
+                            opacity: 0.5,
+                            selectable: false,
+                            evented: false,
+                            isPreview: true,
+                            strokeDashArray: [5, 5]
+                        });
+                    }
+                    break;
+            }
+
+            if (preview) {
+                this.canvas.add(preview);
+                this.canvas.renderAll();
+            }
+        } catch (error) {
+            console.log('Erreur lors de la prévisualisation:', error);
+        }
     }
 
-    // ========================================
+    removePreview() {
+        const objects = this.canvas.getObjects();
+        objects.forEach(obj => {
+            if (obj.isPreview) {
+                this.canvas.remove(obj);
+            }
+        });
+        this.canvas.renderAll();
+    }
+
     // Création d'objets
-    // ========================================
-    
-    createObject(tool, x1, y1, x2, y2) {
-        const strokeColor = document.getElementById('strokeColor').value;
-        const fillColor = document.getElementById('fillColor').value;
-        const strokeWidth = parseInt(document.getElementById('strokeWidth').value);
-        const opacity = parseFloat(document.getElementById('opacity').value);
-        const fontSize = parseInt(document.getElementById('fontSize').value);
+    createObject(x1, y1, x2, y2) {
+        if (this.creatingObject) return;
+        this.creatingObject = true;
+        
+        try {
+            const strokeColorInput = document.getElementById('strokeColor');
+            const fillColorInput = document.getElementById('fillColor');
+            const strokeWidthInput = document.getElementById('strokeWidth');
+            const opacityInput = document.getElementById('opacity');
 
-        let obj = null;
+            const strokeColor = strokeColorInput?.value || '#333333';
+            const fillColor = fillColorInput?.value || '#ffffff';
+            const strokeWidth = parseInt(strokeWidthInput?.value || '2');
+            const opacity = parseFloat(opacityInput?.value || '1');
 
-        switch(tool) {
-            case 'wall':
-                obj = this.createWall(x1, y1, x2, y2, strokeColor, strokeWidth, opacity);
-                break;
-            case 'load-wall':
-                obj = this.createLoadWall(x1, y1, x2, y2, strokeColor, strokeWidth, opacity);
-                break;
-            case 'column':
-                obj = this.createColumn(x1, y1, fillColor, strokeColor, strokeWidth, opacity);
-                break;
-            case 'beam':
-                obj = this.createBeam(x1, y1, x2, y2, fillColor, strokeColor, strokeWidth, opacity);
-                break;
-            case 'door':
-                obj = this.createDoor(x1, y1, opacity);
-                break;
-            case 'sliding-door':
-                obj = this.createSlidingDoor(x1, y1, opacity);
-                break;
-            case 'window':
-                obj = this.createWindow(x1, y1, opacity);
-                break;
-            case 'bay-window':
-                obj = this.createBayWindow(x1, y1, opacity);
-                break;
-            case 'kitchen':
-                obj = this.createKitchen(x1, y1, opacity);
-                break;
-            case 'bathroom':
-                obj = this.createBathroom(x1, y1, opacity);
-                break;
-            case 'stairs':
-                obj = this.createStairs(x1, y1, x2, y2, opacity);
-                break;
-            case 'rectangle':
-                obj = this.createRectangle(x1, y1, x2, y2, fillColor, strokeColor, strokeWidth, opacity);
-                break;
-            case 'circle':
-                obj = this.createCircle(x1, y1, x2, y2, fillColor, strokeColor, strokeWidth, opacity);
-                break;
-            case 'polygon':
-                const sides = parseInt(prompt('Nombre de côtés:', '6')) || 6;
-                obj = this.createPolygon(x1, y1, x2, y2, sides, fillColor, strokeColor, strokeWidth, opacity);
-                break;
-            case 'line':
-                obj = this.createLine(x1, y1, x2, y2, strokeColor, strokeWidth, opacity);
-                break;
-            case 'text':
-                obj = this.createText(x1, y1, strokeColor, fontSize, opacity);
-                break;
-            case 'dimension':
-                obj = this.createDimension(x1, y1, x2, y2, strokeColor, opacity);
-                break;
-            case 'arrow':
-                obj = this.createArrow(x1, y1, x2, y2, strokeColor, strokeWidth, opacity);
-                break;
-            case 'area':
-                obj = this.createArea(x1, y1, x2, y2, fillColor, strokeColor, opacity);
-                break;
+            let obj = null;
+
+            switch(this.currentTool) {
+                case 'wall':
+                    const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                    if (distance > 5) {
+                        obj = new fabric.Line([x1, y1, x2, y2], {
+                            stroke: strokeColor,
+                            strokeWidth: strokeWidth,
+                            opacity: opacity,
+                            selectable: true,
+                            type: 'wall'
+                        });
+                    }
+                    break;
+
+                case 'voile':
+                    obj = this.createVoile(x1, y1, x2, y2, strokeColor, strokeWidth, opacity);
+                    break;
+
+                case 'door':
+                    obj = this.createDoor(x1, y1, opacity);
+                    break;
+
+                case 'window':
+                    obj = this.createWindow(x1, y1, opacity);
+                    break;
+
+                case 'stairs':
+                    obj = this.createStairs(x1, y1, x2, y2, opacity);
+                    break;
+
+                case 'elevator':
+                    obj = this.createElevator(x1, y1, opacity);
+                    break;
+
+                case 'gaine':
+                    obj = this.createGaine(x1, y1, x2, y2, strokeColor, strokeWidth, opacity);
+                    break;
+
+                case 'tech-space':
+                    obj = this.createTechSpace(x1, y1, opacity);
+                    break;
+
+                case 'rectangle':
+                    const width = Math.abs(x2 - x1);
+                    const height = Math.abs(y2 - y1);
+                    const rectWidth = width > 5 ? width : 50;
+                    const rectHeight = height > 5 ? height : 50;
+                    
+                    obj = new fabric.Rect({
+                        left: width > 5 ? Math.min(x1, x2) : x1 - 25,
+                        top: height > 5 ? Math.min(y1, y2) : y1 - 25,
+                        width: rectWidth,
+                        height: rectHeight,
+                        fill: fillColor,
+                        stroke: strokeColor,
+                        strokeWidth: strokeWidth,
+                        opacity: opacity,
+                        type: 'rectangle'
+                    });
+                    break;
+
+                case 'circle':
+                    const radiusCalc = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1)) / 2;
+                    const radius = radiusCalc > 5 ? radiusCalc : 25;
+                    
+                    obj = new fabric.Circle({
+                        left: radiusCalc > 5 ? x1 - radius : x1 - 25,
+                        top: radiusCalc > 5 ? y1 - radius : y1 - 25,
+                        radius: radius,
+                        fill: fillColor,
+                        stroke: strokeColor,
+                        strokeWidth: strokeWidth,
+                        opacity: opacity,
+                        type: 'circle'
+                    });
+                    break;
+
+                case 'line':
+                    const lineDistance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                    if (lineDistance > 5) {
+                        obj = new fabric.Line([x1, y1, x2, y2], {
+                            stroke: strokeColor,
+                            strokeWidth: strokeWidth,
+                            opacity: opacity,
+                            type: 'line'
+                        });
+                    }
+                    break;
+
+                case 'text':
+                    const text = prompt('Entrez le texte:');
+                    if (text && text.trim() !== '') {
+                        obj = new fabric.Text(text, {
+                            left: x1,
+                            top: y1,
+                            fill: strokeColor,
+                            fontSize: 16,
+                            opacity: opacity,
+                            fontFamily: 'Arial, sans-serif',
+                            type: 'text'
+                        });
+                    }
+                    break;
+            }
+
+            if (obj) {
+                this.canvas.add(obj);
+                this.canvas.renderAll();
+                console.log(`Objet créé: ${this.currentTool}`, obj);
+            }
+        } catch (error) {
+            console.log('Erreur lors de la création:', error);
+        } finally {
+            setTimeout(() => {
+                this.creatingObject = false;
+            }, 200);
         }
-
-        if (obj) {
-            obj.layer = this.currentLayer;
-            this.canvas.add(obj);
-            this.layers[this.currentLayer].objects.push(obj);
-            this.canvas.renderAll();
-            this.selectTool('select');
-            this.saveState();
-        }
     }
 
-    createWall(x1, y1, x2, y2, strokeColor, strokeWidth, opacity) {
-        return new fabric.Line([x1, y1, x2, y2], {
-            stroke: strokeColor,
-            strokeWidth: strokeWidth * 2,
+    // Éléments architecturaux prédéfinis
+    createDoor(x, y, opacity) {
+        const doorFrame = new fabric.Rect({
+            left: -25,
+            top: -5,
+            width: 50,
+            height: 10,
+            fill: '#8B4513',
+            stroke: '#654321',
+            strokeWidth: 2
+        });
+
+        const handle = new fabric.Circle({
+            left: 15,
+            top: 0,
+            radius: 2,
+            fill: '#FFD700'
+        });
+
+        return new fabric.Group([doorFrame, handle], {
+            left: x,
+            top: y,
             opacity: opacity,
-            selectable: true,
-            type: 'wall',
-            layer: this.currentLayer
+            type: 'door'
         });
     }
 
-    createLoadWall(x1, y1, x2, y2, strokeColor, strokeWidth, opacity) {
-        return new fabric.Line([x1, y1, x2, y2], {
-            stroke: strokeColor,
-            strokeWidth: strokeWidth * 3,
-            strokeDashArray: [10, 5],
-            opacity: opacity,
-            selectable: true,
-            type: 'load-wall',
-            layer: this.currentLayer
-        });
-    }
-
-    createColumn(x1, y1, fillColor, strokeColor, strokeWidth, opacity) {
-        return new fabric.Circle({
-            left: x1 - 20,
-            top: y1 - 20,
-            radius: 20,
-            fill: fillColor,
-            stroke: strokeColor,
-            strokeWidth: strokeWidth,
-            opacity: opacity,
-            selectable: true,
-            type: 'column',
-            layer: this.currentLayer
-        });
-    }
-
-    createBeam(x1, y1, x2, y2, fillColor, strokeColor, strokeWidth, opacity) {
-        return new fabric.Line([x1, y1, x2, y2], {
-            stroke: strokeColor,
-            strokeWidth: strokeWidth * 1.5,
-            strokeDashArray: [5, 5],
-            opacity: opacity,
-            selectable: true,
-            type: 'beam',
-            layer: this.currentLayer
-        });
-    }
-
-    createDoor(x1, y1, opacity) {
-        return new fabric.Rect({
-            left: x1 - 30,
-            top: y1 - 15,
+    createWindow(x, y, opacity) {
+        const frame = new fabric.Rect({
+            left: -30,
+            top: -5,
             width: 60,
-            height: 30,
-            fill: 'transparent',
-            stroke: '#333333',
-            strokeWidth: 2,
-            opacity: opacity,
-            selectable: true,
-            type: 'door',
-            layer: this.currentLayer
+            height: 10,
+            fill: '#E6E6FA',
+            stroke: '#4682B4',
+            strokeWidth: 2
         });
-    }
 
-    createSlidingDoor(x1, y1, opacity) {
-        return new fabric.Rect({
-            left: x1 - 40,
-            top: y1 - 10,
-            width: 80,
-            height: 20,
-            fill: 'transparent',
-            stroke: '#333333',
-            strokeWidth: 2,
-            strokeDashArray: [5, 5],
-            opacity: opacity,
-            selectable: true,
-            type: 'sliding-door',
-            layer: this.currentLayer
+        const cross = new fabric.Line([-30, 0, 30, 0], {
+            stroke: '#4682B4',
+            strokeWidth: 1
         });
-    }
 
-    createWindow(x1, y1, opacity) {
-        return new fabric.Rect({
-            left: x1 - 50,
-            top: y1 - 10,
-            width: 100,
-            height: 20,
-            fill: '#87CEEB',
-            stroke: '#333333',
-            strokeWidth: 2,
+        return new fabric.Group([frame, cross], {
+            left: x,
+            top: y,
             opacity: opacity,
-            selectable: true,
-            type: 'window',
-            layer: this.currentLayer
-        });
-    }
-
-    createBayWindow(x1, y1, opacity) {
-        return new fabric.Rect({
-            left: x1 - 75,
-            top: y1 - 15,
-            width: 150,
-            height: 30,
-            fill: '#87CEEB',
-            stroke: '#333333',
-            strokeWidth: 2,
-            opacity: opacity,
-            selectable: true,
-            type: 'bay-window',
-            layer: this.currentLayer
-        });
-    }
-
-    createKitchen(x1, y1, opacity) {
-        return new fabric.Rect({
-            left: x1 - 50,
-            top: y1 - 25,
-            width: 100,
-            height: 50,
-            fill: '#F5F5DC',
-            stroke: '#333333',
-            strokeWidth: 2,
-            opacity: opacity,
-            selectable: true,
-            type: 'kitchen',
-            layer: this.currentLayer
-        });
-    }
-
-    createBathroom(x1, y1, opacity) {
-        return new fabric.Rect({
-            left: x1 - 40,
-            top: y1 - 40,
-            width: 80,
-            height: 80,
-            fill: '#E0FFFF',
-            stroke: '#333333',
-            strokeWidth: 2,
-            opacity: opacity,
-            selectable: true,
-            type: 'bathroom',
-            layer: this.currentLayer
+            type: 'window'
         });
     }
 
     createStairs(x1, y1, x2, y2, opacity) {
-        const width = Math.abs(x2 - x1);
-        const height = Math.abs(y2 - y1);
-        return new fabric.Rect({
-            left: x1,
-            top: y1,
-            width: width,
-            height: height,
-            fill: 'transparent',
-            stroke: '#333333',
-            strokeWidth: 2,
-            strokeDashArray: [10, 10],
-            opacity: opacity,
-            selectable: true,
-            type: 'stairs',
-            layer: this.currentLayer
-        });
-    }
-
-    createRectangle(x1, y1, x2, y2, fillColor, strokeColor, strokeWidth, opacity) {
-        const width = Math.abs(x2 - x1);
-        const height = Math.abs(y2 - y1);
-        return new fabric.Rect({
-            left: Math.min(x1, x2),
-            top: Math.min(y1, y2),
-            width: width,
-            height: height,
-            fill: fillColor,
-            stroke: strokeColor,
-            strokeWidth: strokeWidth,
-            opacity: opacity,
-            selectable: true,
-            type: 'rectangle',
-            layer: this.currentLayer
-        });
-    }
-
-    createCircle(x1, y1, x2, y2, fillColor, strokeColor, strokeWidth, opacity) {
-        const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)) / 2;
-        return new fabric.Circle({
-            left: x1 - radius,
-            top: y1 - radius,
-            radius: radius,
-            fill: fillColor,
-            stroke: strokeColor,
-            strokeWidth: strokeWidth,
-            opacity: opacity,
-            selectable: true,
-            type: 'circle',
-            layer: this.currentLayer
-        });
-    }
-
-    createPolygon(x1, y1, x2, y2, sides, fillColor, strokeColor, strokeWidth, opacity) {
-        const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)) / 2;
-        const points = [];
+        const width = Math.abs(x2 - x1) || 80;
+        const height = Math.abs(y2 - y1) || 120;
+        const steps = [];
+        const numSteps = Math.max(Math.floor(height / 15), 4);
         
-        for (let i = 0; i < sides; i++) {
-            const angle = (Math.PI * 2 * i) / sides - Math.PI / 2;
-            points.push({
-                x: x1 + radius * Math.cos(angle),
-                y: y1 + radius * Math.sin(angle)
+        // Base de l'escalier
+        const base = new fabric.Rect({
+            left: 0,
+            top: 0,
+            width: width,
+            height: height,
+            fill: '#F5F5DC',
+            stroke: '#8B4513',
+            strokeWidth: 2
+        });
+        steps.push(base);
+
+        // Marches
+        for (let i = 0; i < numSteps; i++) {
+            const stepY = (height / numSteps) * i;
+            const step = new fabric.Line([0, stepY, width, stepY], {
+                stroke: '#8B4513',
+                strokeWidth: 1
             });
+            steps.push(step);
         }
-        
-        return new fabric.Polygon(points, {
-            fill: fillColor,
-            stroke: strokeColor,
-            strokeWidth: strokeWidth,
-            opacity: opacity,
-            selectable: true,
-            type: 'polygon',
-            layer: this.currentLayer
-        });
-    }
 
-    createLine(x1, y1, x2, y2, strokeColor, strokeWidth, opacity) {
-        return new fabric.Line([x1, y1, x2, y2], {
-            stroke: strokeColor,
-            strokeWidth: strokeWidth,
-            opacity: opacity,
-            selectable: true,
-            type: 'line',
-            layer: this.currentLayer
-        });
-    }
-
-    createText(x1, y1, strokeColor, fontSize, opacity) {
-        return new fabric.Textbox('Texte', {
-            left: x1,
-            top: y1,
-            fontSize: fontSize,
-            fill: strokeColor,
-            opacity: opacity,
-            selectable: true,
-            type: 'text',
-            layer: this.currentLayer
-        });
-    }
-
-    createDimension(x1, y1, x2, y2, strokeColor, opacity) {
-        const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-        const text = new fabric.Text(`${this.convertToUnit(distance).toFixed(2)}${this.unitSystem}`, {
-            left: (x1 + x2) / 2,
-            top: (y1 + y2) / 2 - 20,
-            fontSize: 14,
-            fill: strokeColor,
-            opacity: opacity
-        });
-        const line = new fabric.Line([x1, y1, x2, y2], {
-            stroke: strokeColor,
-            strokeWidth: 1,
-            opacity: opacity
-        });
-        return new fabric.Group([line, text], {
-            selectable: true,
-            type: 'dimension',
-            layer: this.currentLayer
-        });
-    }
-
-    createArrow(x1, y1, x2, y2, strokeColor, strokeWidth, opacity) {
-        const angle = Math.atan2(y2 - y1, x2 - x1);
-        const headSize = 10;
-        const headPoints = [
-            { x: x2, y: y2 },
-            { x: x2 - headSize * Math.cos(angle - Math.PI / 6), y: y2 - headSize * Math.sin(angle - Math.PI / 6) },
-            { x: x2 - headSize * Math.cos(angle + Math.PI / 6), y: y2 - headSize * Math.sin(angle + Math.PI / 6) }
-        ];
-        return new fabric.Group([
-            new fabric.Line([x1, y1, x2, y2], { stroke: strokeColor, strokeWidth: strokeWidth, opacity: opacity }),
-            new fabric.Polygon(headPoints, { fill: strokeColor, stroke: strokeColor, strokeWidth: strokeWidth, opacity: opacity })
+        // Flèche de direction
+        const arrow = new fabric.Polygon([
+            {x: width/2, y: height - 20},
+            {x: width/2 - 10, y: height - 10},
+            {x: width/2 + 10, y: height - 10}
         ], {
-            selectable: true,
-            type: 'arrow',
-            layer: this.currentLayer
+            fill: '#2F4F4F',
+            stroke: '#000000',
+            strokeWidth: 1
         });
-    }
+        steps.push(arrow);
 
-    createArea(x1, y1, x2, y2, fillColor, strokeColor, opacity) {
-        const width = Math.abs(x2 - x1);
-        const height = Math.abs(y2 - y1);
-        const area = this.convertToUnit(width) * this.convertToUnit(height);
-        const rect = new fabric.Rect({
+        return new fabric.Group(steps, {
             left: Math.min(x1, x2),
             top: Math.min(y1, y2),
-            width: width,
-            height: height,
-            fill: fillColor,
-            stroke: strokeColor,
-            strokeWidth: 1,
+            opacity: opacity,
+            type: 'stairs'
+        });
+    }
+
+    createElevator(x, y, opacity) {
+        const cabin = new fabric.Rect({
+            left: -30,
+            top: -30,
+            width: 60,
+            height: 60,
+            fill: '#C0C0C0',
+            stroke: '#808080',
+            strokeWidth: 3
+        });
+
+        const door1 = new fabric.Rect({
+            left: -25,
+            top: -25,
+            width: 20,
+            height: 50,
+            fill: '#A9A9A9',
+            stroke: '#696969',
+            strokeWidth: 1
+        });
+
+        const door2 = new fabric.Rect({
+            left: 5,
+            top: -25,
+            width: 20,
+            height: 50,
+            fill: '#A9A9A9',
+            stroke: '#696969',
+            strokeWidth: 1
+        });
+
+        const buttons = new fabric.Rect({
+            left: 25,
+            top: -15,
+            width: 8,
+            height: 30,
+            fill: '#FFD700',
+            stroke: '#FFA500',
+            strokeWidth: 1
+        });
+
+        const symbol = new fabric.Text('ASC', {
+            left: 0,
+            top: 0,
+            fontSize: 12,
+            fill: '#000000',
+            fontFamily: 'Arial, sans-serif',
+            originX: 'center',
+            originY: 'center'
+        });
+
+        return new fabric.Group([cabin, door1, door2, buttons, symbol], {
+            left: x,
+            top: y,
+            opacity: opacity,
+            type: 'elevator'
+        });
+    }
+
+    createVoile(x1, y1, x2, y2, color, strokeWidth, opacity) {
+        const width = Math.abs(x2 - x1) || 20;
+        const height = Math.abs(y2 - y1) || 100;
+        
+        const voile = new fabric.Rect({
+            left: Math.min(x1, x2),
+            top: Math.min(y1, y2),
+            width: Math.max(width, 20),
+            height: Math.max(height, 50),
+            fill: '#D3D3D3',
+            stroke: color,
+            strokeWidth: strokeWidth * 2,
             opacity: opacity
         });
-        const text = new fabric.Text(`${area.toFixed(2)} ${this.unitSystem}²`, {
-            left: (x1 + x2) / 2,
-            top: (y1 + y2) / 2,
+
+        const hatches = [];
+        for (let i = 0; i < Math.max(width, height); i += 15) {
+            const hatch = new fabric.Line([i, 0, i + 10, 10], {
+                stroke: color,
+                strokeWidth: 1,
+                opacity: opacity * 0.5
+            });
+            hatches.push(hatch);
+        }
+
+        return new fabric.Group([voile, ...hatches], {
+            type: 'voile'
+        });
+    }
+
+    createGaine(x1, y1, x2, y2, color, strokeWidth, opacity) {
+        const width = Math.abs(x2 - x1) || 40;
+        const height = Math.abs(y2 - y1) || 40;
+        
+        const conduit = new fabric.Rect({
+            left: Math.min(x1, x2),
+            top: Math.min(y1, y2),
+            width: Math.max(width, 30),
+            height: Math.max(height, 30),
+            fill: 'transparent',
+            stroke: color,
+            strokeWidth: strokeWidth,
+            strokeDashArray: [10, 5],
+            opacity: opacity
+        });
+
+        const centerX = Math.min(x1, x2) + Math.max(width, 30) / 2;
+        const centerY = Math.min(y1, y2) + Math.max(height, 30) / 2;
+
+        const elecSymbol = new fabric.Text('E', {
+            left: centerX - 10,
+            top: centerY - 10,
             fontSize: 14,
-            fill: strokeColor,
-            opacity: opacity
+            fill: color,
+            fontFamily: 'Arial, sans-serif',
+            originX: 'center',
+            originY: 'center'
         });
-        return new fabric.Group([rect, text], {
-            selectable: true,
-            type: 'area',
-            layer: this.currentLayer
+
+        const plumbSymbol = new fabric.Text('P', {
+            left: centerX + 10,
+            top: centerY - 10,
+            fontSize: 14,
+            fill: color,
+            fontFamily: 'Arial, sans-serif',
+            originX: 'center',
+            originY: 'center'
+        });
+
+        return new fabric.Group([conduit, elecSymbol, plumbSymbol], {
+            type: 'gaine'
         });
     }
 
-    // ========================================
-    // Gestion des calques
-    // ========================================
-    
-    selectLayer(layerName) {
-        if (!this.layers[layerName]) return;
-
-        document.querySelectorAll('.layer-item').forEach(item => {
-            item.classList.remove('active');
+    createTechSpace(x, y, opacity) {
+        const room = new fabric.Rect({
+            left: -40,
+            top: -30,
+            width: 80,
+            height: 60,
+            fill: '#F0F8FF',
+            stroke: '#4169E1',
+            strokeWidth: 3,
+            strokeDashArray: [15, 10]
         });
-        document.querySelector(`[data-layer="${layerName}"]`).classList.add('active');
 
-        this.currentLayer = layerName;
-        document.getElementById('layerStatus').textContent = `Calque: ${this.getLayerDisplayName(layerName)}`;
+        const equipment1 = new fabric.Rect({
+            left: -30,
+            top: -20,
+            width: 25,
+            height: 15,
+            fill: '#708090',
+            stroke: '#2F4F4F',
+            strokeWidth: 1
+        });
+
+        const equipment2 = new fabric.Circle({
+            left: 0,
+            top: -10,
+            radius: 8,
+            fill: '#708090',
+            stroke: '#2F4F4F',
+            strokeWidth: 1
+        });
+
+        const equipment3 = new fabric.Rect({
+            left: 15,
+            top: -15,
+            width: 20,
+            height: 25,
+            fill: '#708090',
+            stroke: '#2F4F4F',
+            strokeWidth: 1
+        });
+
+        const label = new fabric.Text('R.TECH', {
+            left: 0,
+            top: 20,
+            fontSize: 10,
+            fill: '#4169E1',
+            fontFamily: 'Arial, sans-serif',
+            fontWeight: 'bold',
+            originX: 'center',
+            originY: 'center'
+        });
+
+        return new fabric.Group([room, equipment1, equipment2, equipment3, label], {
+            left: x,
+            top: y,
+            opacity: opacity,
+            type: 'tech-space'
+        });
     }
 
-    toggleLayerVisibility(layerName) {
-        const layer = this.layers[layerName];
-        layer.visible = !layer.visible;
-        
-        const layerItem = document.querySelector(`[data-layer="${layerName}"]`);
-        const visibilityIcon = layerItem.querySelector('.layer-visibility');
-        visibilityIcon.textContent = layer.visible ? '👁️' : '👁️‍🗨️';
-        
-        this.canvas.getObjects().forEach(obj => {
-            if (obj.layer === layerName) {
-                obj.visible = layer.visible;
-                obj.selectable = layer.visible && !layer.locked;
-            }
-        });
-        
-        this.canvas.renderAll();
-        this.showToast(`Calque ${layer.visible ? 'visible' : 'masqué'}`, 'info');
-    }
+    // Fonction gomme
+    handleEraser(pointer) {
+        const x = pointer.x;
+        const y = pointer.y;
+        const eraserSize = 20;
 
-    toggleLayerLock(layerName) {
-        const layer = this.layers[layerName];
-        layer.locked = !layer.locked;
-        
-        const layerItem = document.querySelector(`[data-layer="${layerName}"]`);
-        const lockIcon = layerItem.querySelector('.layer-lock');
-        lockIcon.textContent = layer.locked ? '🔒' : '🔓';
-        
-        this.canvas.getObjects().forEach(obj => {
-            if (obj.layer === layerName) {
-                obj.selectable = !layer.locked && layer.visible;
-                obj.evented = !layer.locked;
-            }
-        });
-        
-        this.canvas.renderAll();
-        this.showToast(`Calque ${layer.locked ? 'verrouillé' : 'déverrouillé'}`, 'info');
-    }
+        this.showEraserIndicator(x, y, eraserSize);
 
-    addNewLayer() {
-        const layerName = prompt('Nom du nouveau calque:');
-        if (layerName && !this.layers[layerName]) {
-            this.layers[layerName] = { visible: true, locked: false, objects: [] };
-            
-            const layerPanel = document.querySelector('.layers-panel');
-            const newLayerItem = document.createElement('div');
-            newLayerItem.className = 'layer-item';
-            newLayerItem.dataset.layer = layerName;
-            newLayerItem.innerHTML = `
-                <span class="layer-visibility" data-action="toggle-visibility">👁️</span>
-                <span class="layer-name">${layerName}</span>
-                <span class="layer-lock" data-action="toggle-lock">🔓</span>
-            `;
-            
-            newLayerItem.addEventListener('click', (e) => {
-                const action = e.target.dataset.action;
-                if (action === 'toggle-visibility') {
-                    this.toggleLayerVisibility(layerName);
-                } else if (action === 'toggle-lock') {
-                    this.toggleLayerLock(layerName);
+        const objectsToCheck = this.canvas.getObjects().filter(obj => 
+            !obj.isGrid && !obj.isPreview && !obj.isEraserIndicator && obj.selectable !== false
+        );
+
+        objectsToCheck.forEach(obj => {
+            if (this.isPointNearObject(x, y, obj, eraserSize)) {
+                if (obj.type === 'line' || obj.type === 'wall') {
+                    this.eraseFromLine(obj, x, y, eraserSize);
                 } else {
-                    this.selectLayer(layerName);
+                    this.canvas.remove(obj);
                 }
+            }
+        });
+        
+        this.canvas.renderAll();
+    }
+
+    showEraserIndicator(x, y, size) {
+        const oldIndicator = this.canvas.getObjects().find(obj => obj.isEraserIndicator);
+        if (oldIndicator) {
+            this.canvas.remove(oldIndicator);
+        }
+
+        const indicator = new fabric.Circle({
+            left: x - size/2,
+            top: y - size/2,
+            radius: size/2,
+            fill: 'transparent',
+            stroke: '#ff0000',
+            strokeWidth: 2,
+            strokeDashArray: [5, 5],
+            selectable: false,
+            evented: false,
+            isEraserIndicator: true,
+            opacity: 0.7
+        });
+
+        this.canvas.add(indicator);
+    }
+
+    hideEraserIndicator() {
+        const indicator = this.canvas.getObjects().find(obj => obj.isEraserIndicator);
+        if (indicator) {
+            this.canvas.remove(indicator);
+            this.canvas.renderAll();
+        }
+    }
+
+    isPointNearObject(x, y, obj, tolerance) {
+        const objBounds = obj.getBoundingRect();
+        return (x >= objBounds.left - tolerance && 
+                x <= objBounds.left + objBounds.width + tolerance &&
+                y >= objBounds.top - tolerance && 
+                y <= objBounds.top + objBounds.height + tolerance);
+    }
+
+    eraseFromLine(lineObj, x, y, tolerance) {
+        if (lineObj.type !== 'line' && lineObj.type !== 'wall') return;
+
+        const x1 = lineObj.x1;
+        const y1 = lineObj.y1;
+        const x2 = lineObj.x2;
+        const y2 = lineObj.y2;
+
+        const A = x - x1;
+        const B = y - y1;
+        const C = x2 - x1;
+        const D = y2 - y1;
+
+        const dot = A * C + B * D;
+        const lenSq = C * C + D * D;
+        
+        if (lenSq === 0) {
+            this.canvas.remove(lineObj);
+            return;
+        }
+
+        const param = dot / lenSq;
+
+        if (param < 0 || param > 1) return;
+
+        const xx = x1 + param * C;
+        const yy = y1 + param * D;
+
+        const distance = Math.sqrt((x - xx) * (x - xx) + (y - yy) * (y - yy));
+
+        if (distance <= tolerance) {
+            this.canvas.remove(lineObj);
+        }
+    }
+
+    // Utilitaires
+    snapToGrid(value) {
+        return this.snapEnabled ? Math.round(value / this.gridSize) * this.gridSize : value;
+    }
+
+    rgbToHex(rgb) {
+        if (!rgb) return '#000000';
+        if (rgb.startsWith('#')) return rgb;
+        
+        const match = rgb.match(/rgba?\((\d+),?\s*(\d+),?\s*(\d+)/);
+        if (match) {
+            const r = parseInt(match[1]).toString(16).padStart(2, '0');
+            const g = parseInt(match[2]).toString(16).padStart(2, '0');
+            const b = parseInt(match[3]).toString(16).padStart(2, '0');
+            return `#${r}${g}${b}`;
+        }
+        return rgb.startsWith('#') ? rgb : '#000000';
+    }
+
+    drawGrid() {
+        const objects = this.canvas.getObjects();
+        objects.forEach(obj => {
+            if (obj.isGrid) {
+                this.canvas.remove(obj);
+            }
+        });
+
+        const gridToggle = document.getElementById('gridToggle');
+        if (!gridToggle || !gridToggle.checked) return;
+
+        const gridLines = [];
+
+        for (let i = 0; i <= this.canvas.width; i += this.gridSize) {
+            gridLines.push(new fabric.Line([i, 0, i, this.canvas.height], {
+                stroke: '#e0e0e0',
+                strokeWidth: 1,
+                selectable: false,
+                evented: false,
+                isGrid: true
+            }));
+        }
+
+        for (let i = 0; i <= this.canvas.height; i += this.gridSize) {
+            gridLines.push(new fabric.Line([0, i, this.canvas.width, i], {
+                stroke: '#e0e0e0',
+                strokeWidth: 1,
+                selectable: false,
+                evented: false,
+                isGrid: true
+            }));
+        }
+
+        gridLines.forEach(line => {
+            this.canvas.add(line);
+            this.canvas.sendToBack(line);
+        });
+
+        this.canvas.renderAll();
+    }
+
+    // Gestion des propriétés
+    updateProperties() {
+        const activeObject = this.canvas.getActiveObject();
+        if (!activeObject) return;
+
+        try {
+            const strokeColorInput = document.getElementById('strokeColor');
+            const fillColorInput = document.getElementById('fillColor');
+            const strokeWidthInput = document.getElementById('strokeWidth');
+            const opacityInput = document.getElementById('opacity');
+
+            const strokeColor = strokeColorInput?.value || '#333333';
+            const fillColor = fillColorInput?.value || '#ffffff';
+            const strokeWidth = parseInt(strokeWidthInput?.value || '2');
+            const opacity = parseFloat(opacityInput?.value || '1');
+
+            if (activeObject.type === 'line' || activeObject.type === 'wall') {
+                activeObject.set({ 
+                    stroke: strokeColor, 
+                    strokeWidth: strokeWidth, 
+                    opacity: opacity 
+                });
+            } else if (activeObject.type === 'text') {
+                activeObject.set({ 
+                    fill: strokeColor, 
+                    opacity: opacity,
+                    fontFamily: 'Arial, sans-serif'
+                });
+            } else {
+                const updateProps = { opacity: opacity };
+                
+                if (activeObject.fill !== undefined) {
+                    updateProps.fill = fillColor;
+                }
+                if (activeObject.stroke !== undefined) {
+                    updateProps.stroke = strokeColor;
+                    updateProps.strokeWidth = strokeWidth;
+                }
+                
+                activeObject.set(updateProps);
+            }
+
+            this.canvas.renderAll();
+            this.saveState();
+        } catch (error) {
+            console.log('Erreur lors de la mise à jour des propriétés:', error);
+        }
+    }
+
+    updateStrokeWidth() {
+        const strokeWidthInput = document.getElementById('strokeWidth');
+        const strokeValue = document.getElementById('strokeValue');
+        
+        if (!strokeWidthInput) return;
+        
+        const value = strokeWidthInput.value;
+        if (strokeValue) strokeValue.textContent = value;
+        this.updateProperties();
+    }
+
+    updateOpacity() {
+        const opacityInput = document.getElementById('opacity');
+        const opacityValue = document.getElementById('opacityValue');
+        
+        if (!opacityInput) return;
+        
+        const value = opacityInput.value;
+        if (opacityValue) opacityValue.textContent = Math.round(value * 100) + '%';
+        this.updateProperties();
+    }
+
+    // Gestion de la sélection
+    handleSelection(e) {
+        const obj = e.selected[0];
+        if (obj) {
+            const selectionInfo = document.getElementById('selection');
+            if (selectionInfo) {
+                selectionInfo.textContent = `Sélectionné: ${obj.type || 'objet'}`;
+            }
+            this.updatePropertiesFromObject(obj);
+        }
+    }
+
+    handleSelectionClear() {
+        const selectionInfo = document.getElementById('selection');
+        if (selectionInfo) {
+            selectionInfo.textContent = 'Aucune sélection';
+        }
+    }
+
+    updatePropertiesFromObject(obj) {
+        if (!obj) return;
+
+        try {
+            if (obj.stroke && obj.stroke !== 'transparent') {
+                const hexStroke = this.rgbToHex(obj.stroke);
+                const strokeColorInput = document.getElementById('strokeColor');
+                if (strokeColorInput) strokeColorInput.value = hexStroke;
+            }
+            
+            if (obj.fill && obj.fill !== 'transparent') {
+                const hexFill = this.rgbToHex(obj.fill);
+                const fillColorInput = document.getElementById('fillColor');
+                if (fillColorInput) fillColorInput.value = hexFill;
+            }
+            
+            if (obj.strokeWidth !== undefined) {
+                const strokeWidth = Math.max(1, Math.min(10, obj.strokeWidth));
+                const strokeWidthInput = document.getElementById('strokeWidth');
+                const strokeValue = document.getElementById('strokeValue');
+                if (strokeWidthInput) strokeWidthInput.value = strokeWidth;
+                if (strokeValue) strokeValue.textContent = strokeWidth;
+            }
+            
+            if (obj.opacity !== undefined) {
+                const opacity = Math.max(0.1, Math.min(1, obj.opacity));
+                const opacityInput = document.getElementById('opacity');
+                const opacityValue = document.getElementById('opacityValue');
+                if (opacityInput) opacityInput.value = opacity;
+                if (opacityValue) opacityValue.textContent = Math.round(opacity * 100) + '%';
+            }
+        } catch (error) {
+            console.log('Erreur lors de la mise à jour des propriétés:', error);
+        }
+    }
+
+    // Paramètres
+    toggleGrid() {
+        this.drawGrid();
+    }
+
+    toggleSnap() {
+        this.snapEnabled = document.getElementById('snapToggle')?.checked ?? true;
+        console.log('Accrochage:', this.snapEnabled ? 'activé' : 'désactivé');
+    }
+
+    toggleAutoSelect() {
+        this.autoSelectAfterDraw = document.getElementById('autoSelectToggle')?.checked ?? true;
+        console.log('Retour auto à la sélection:', this.autoSelectAfterDraw ? 'activé' : 'désactivé');
+    }
+
+    updateZoom() {
+        const zoomSlider = document.getElementById('zoomSlider');
+        if (!zoomSlider) return;
+        
+        const zoom = parseFloat(zoomSlider.value);
+        this.canvas.setZoom(zoom);
+        
+        const zoomValue = document.getElementById('zoomValue');
+        const zoomInfo = document.getElementById('zoomInfo');
+        
+        if (zoomValue) zoomValue.textContent = Math.round(zoom * 100) + '%';
+        if (zoomInfo) zoomInfo.textContent = `Zoom: ${Math.round(zoom * 100)}%`;
+    }
+
+    // Historique
+    saveState() {
+        try {
+            const objectsToSave = this.canvas.getObjects().filter(obj => 
+                !obj.isGrid && !obj.isPreview && !obj.isEraserIndicator
+            );
+            
+            const cleanObjects = objectsToSave.map(obj => {
+                const objData = obj.toObject();
+                delete objData.textAlign;
+                delete objData.textBaseline;
+                return objData;
             });
             
-            const addBtn = layerPanel.querySelector('.add-layer-btn');
-            layerPanel.insertBefore(newLayerItem, addBtn);
+            const canvasState = {
+                version: this.canvas.version,
+                objects: cleanObjects
+            };
             
-            this.selectLayer(layerName);
-            this.showToast('Nouveau calque créé', 'success');
-        }
-    }
-
-    getLayerDisplayName(layerName) {
-        const names = {
-            structure: 'Structure',
-            furniture: 'Mobilier',
-            dimensions: 'Cotations'
-        };
-        return names[layerName] || layerName;
-    }
-
-    // ========================================
-    // Grouper/Dégrouper
-    // ========================================
-    
-    groupObjects() {
-        const activeObject = this.canvas.getActiveObject();
-        if (activeObject && activeObject.type === 'activeSelection') {
-            const group = activeObject.toGroup();
-            group.layer = this.currentLayer;
-            this.canvas.requestRenderAll();
-            this.saveState();
-            this.showToast('Objets groupés', 'success');
-        }
-    }
-
-    ungroupObjects() {
-        const activeObject = this.canvas.getActiveObject();
-        if (activeObject && activeObject.type === 'group') {
-            activeObject.toActiveSelection();
-            this.canvas.requestRenderAll();
-            this.saveState();
-            this.showToast('Groupe défait', 'success');
-        }
-    }
-
-    // ========================================
-    // Alignement et Distribution
-    // ========================================
-    
-    alignObjects(alignment) {
-        const activeObject = this.canvas.getActiveObject();
-        if (!activeObject || activeObject.type !== 'activeSelection') {
-            this.showToast('Veuillez sélectionner plusieurs objets pour aligner', 'warning');
-            return;
-        }
-
-        const objects = activeObject.getObjects();
-        if (objects.length < 2) {
-            this.showToast('Sélectionnez au moins deux objets pour aligner', 'warning');
-            return;
-        }
-
-        const bounds = activeObject.getBoundingRect(true, true);
-
-        objects.forEach(obj => {
-            switch (alignment) {
-                case 'left':
-                    obj.set('left', bounds.left);
-                    break;
-                case 'center-h':
-                    obj.set('left', bounds.left + (bounds.width - obj.getScaledWidth()) / 2);
-                    break;
-                case 'right':
-                    obj.set('left', bounds.left + bounds.width - obj.getScaledWidth());
-                    break;
-                case 'top':
-                    obj.set('top', bounds.top);
-                    break;
-                case 'center-v':
-                    obj.set('top', bounds.top + (bounds.height - obj.getScaledHeight()) / 2);
-                    break;
-                case 'bottom':
-                    obj.set('top', bounds.top + bounds.height - obj.getScaledHeight());
-                    break;
+            const state = JSON.stringify(canvasState);
+            this.history = this.history.slice(0, this.historyIndex + 1);
+            this.history.push(state);
+            this.historyIndex++;
+            
+            if (this.history.length > 30) {
+                this.history.shift();
+                this.historyIndex--;
             }
-            obj.setCoords();
-        });
 
-        this.canvas.renderAll();
-        this.saveState();
-        this.showToast(`Objets alignés : ${alignment}`, 'success');
-        this.closeAllModals();
-    }
-
-    distributeObjects(distribution) {
-        const activeObject = this.canvas.getActiveObject();
-        if (!activeObject || activeObject.type !== 'activeSelection') {
-            this.showToast('Veuillez sélectionner plusieurs objets pour distribuer', 'warning');
-            return;
-        }
-
-        const objects = activeObject.getObjects();
-        if (objects.length < 3) {
-            this.showToast('Sélectionnez au moins trois objets pour distribuer', 'warning');
-            return;
-        }
-
-        const sortedObjects = objects.slice().sort((a, b) => {
-            const boundsA = a.getBoundingRect(true, true);
-            const boundsB = b.getBoundingRect(true, true);
-            return distribution === 'horizontal' 
-                ? boundsA.left - boundsB.left 
-                : boundsA.top - boundsB.top;
-        });
-
-        const bounds = activeObject.getBoundingRect(true, true);
-        const firstObj = sortedObjects[0];
-        const lastObj = sortedObjects[sortedObjects.length - 1];
-        const firstBounds = firstObj.getBoundingRect(true, true);
-        const lastBounds = lastObj.getBoundingRect(true, true);
-
-        let totalWidth = 0;
-        let totalHeight = 0;
-        sortedObjects.forEach(obj => {
-            const objBounds = obj.getBoundingRect(true, true);
-            totalWidth += objBounds.width;
-            totalHeight += objBounds.height;
-        });
-
-        const spaceX = distribution === 'horizontal' 
-            ? (bounds.width - totalWidth) / (sortedObjects.length - 1)
-            : 0;
-        const spaceY = distribution === 'vertical' 
-            ? (bounds.height - totalHeight) / (sortedObjects.length - 1)
-            : 0;
-
-        sortedObjects.forEach((obj, index) => {
-            if (index === 0 || index === sortedObjects.length - 1) return;
-
-            const prevObj = sortedObjects[index - 1];
-            const prevBounds = prevObj.getBoundingRect(true, true);
-            const objBounds = obj.getBoundingRect(true, true);
-
-            if (distribution === 'horizontal') {
-                obj.set('left', prevBounds.left + prevBounds.width + spaceX);
-            } else {
-                obj.set('top', prevBounds.top + prevBounds.height + spaceY);
+            const saveStatus = document.getElementById('saveStatus');
+            if (saveStatus) {
+                saveStatus.textContent = '💾 Modifié';
             }
-            obj.setCoords();
-        });
-
-        this.canvas.renderAll();
-        this.saveState();
-        this.showToast(`Objets distribués : ${distribution}`, 'success');
-        this.closeAllModals();
-    }
-
-    // ========================================
-    // Gestion des modales
-    // ========================================
-    
-    showFurnitureModal() {
-        this.showFurnitureCategory('salon');
-        document.getElementById('furnitureModal').style.display = 'block';
-    }
-
-    showFurnitureCategory(category) {
-        document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`[data-category="${category}"]`).classList.add('active');
-
-        const grid = document.getElementById('furnitureGrid');
-        grid.innerHTML = '';
-        this.furnitureCategories[category].forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'furniture-item';
-            div.dataset.furnitureId = item.id;
-            div.innerHTML = `
-                <div class="furniture-icon">${item.icon}</div>
-                <div class="furniture-name">${item.name}</div>
-            `;
-            grid.appendChild(div);
-        });
-    }
-
-    handleModalClick(e) {
-        const furnitureItem = e.target.closest('.furniture-item');
-        if (furnitureItem) {
-            const furnitureId = furnitureItem.dataset.furnitureId;
-            this.addFurniture(furnitureId, this.startX, this.startY);
-            this.closeAllModals();
+        } catch (error) {
+            console.log('Erreur lors de la sauvegarde:', error);
         }
-
-        const templateItem = e.target.closest('.template-item');
-        if (templateItem) {
-            const template = templateItem.dataset.template;
-            this.loadTemplate(template);
-        }
-    }
-
-    addFurniture(furnitureId, x, y) {
-        let furniture = null;
-        for (let category in this.furnitureCategories) {
-            furniture = this.furnitureCategories[category].find(item => item.id === furnitureId);
-            if (furniture) break;
-        }
-        if (!furniture) return;
-
-        const obj = new fabric.Rect({
-            left: x - 50,
-            top: y - 50,
-            width: 100,
-            height: 100,
-            fill: '#ffffff',
-            stroke: '#333333',
-            strokeWidth: 2,
-            opacity: 1,
-            selectable: true,
-            type: `furniture-${furnitureId}`,
-            layer: this.currentLayer
-        });
-        this.canvas.add(obj);
-        this.layers[this.currentLayer].objects.push(obj);
-        this.canvas.renderAll();
-        this.saveState();
-        this.showToast(`${furniture.name} ajouté`, 'success');
-    }
-
-    showTemplateModal() {
-        document.getElementById('templateModal').style.display = 'block';
-    }
-
-    showAlignModal() {
-        document.getElementById('alignModal').style.display = 'block';
-    }
-
-    showHelpModal() {
-        document.getElementById('helpModal').style.display = 'block';
-    }
-
-    closeAllModals() {
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.style.display = 'none';
-        });
-    }
-
-    // ========================================
-    // Templates
-    // ========================================
-    
-    loadTemplate(template) {
-        this.clearCanvas();
-        switch (template) {
-            case 'studio':
-                this.createWall(100, 100, 300, 100, '#333333', 5, 1);
-                this.createWall(300, 100, 300, 300, '#333333', 5, 1);
-                this.createWall(300, 300, 100, 300, '#333333', 5, 1);
-                this.createWall(100, 300, 100, 100, '#333333', 5, 1);
-                this.createDoor(200, 300, 1);
-                this.addFurniture('sofa', 150, 150);
-                break;
-            case 't2':
-                this.createWall(100, 100, 400, 100, '#333333', 5, 1);
-                this.createWall(400, 100, 400, 400, '#333333', 5, 1);
-                this.createWall(400, 400, 100, 400, '#333333', 5, 1);
-                this.createWall(100, 400, 100, 100, '#333333', 5, 1);
-                this.createDoor(250, 400, 1);
-                this.addFurniture('bed', 200, 200);
-                break;
-            // Ajouter d'autres templates si nécessaire
-        }
-        this.canvas.renderAll();
-        this.saveState();
-        this.closeAllModals();
-        this.showToast(`Template ${template} chargé`, 'success');
-    }
-
-    // ========================================
-    // Historique
-    // ========================================
-    
-    saveState() {
-        this.history = this.history.slice(0, this.historyIndex + 1);
-        const canvasState = JSON.stringify(this.canvas);
-        this.history.push(canvasState);
-        this.historyIndex++;
-        this.hasUnsavedChanges = true;
-        this.updateSaveIndicator();
     }
 
     undo() {
         if (this.historyIndex > 0) {
-            this.historyIndex--;
-            this.canvas.loadFromJSON(this.history[this.historyIndex], () => {
-                this.canvas.renderAll();
-                this.updateLayers();
-            });
-            this.showToast('Action annulée', 'info');
+            try {
+                this.historyIndex--;
+                const state = JSON.parse(this.history[this.historyIndex]);
+                
+                const gridObjects = this.canvas.getObjects().filter(obj => obj.isGrid);
+                this.canvas.clear();
+                
+                gridObjects.forEach(grid => this.canvas.add(grid));
+                
+                if (state.objects && state.objects.length > 0) {
+                    state.objects.forEach(objData => {
+                        try {
+                            fabric.util.enlivenObjects([objData], (objects) => {
+                                objects.forEach(obj => {
+                                    if (obj && typeof obj === 'object') {
+                                        this.canvas.add(obj);
+                                    }
+                                });
+                                this.canvas.renderAll();
+                            });
+                        } catch (objError) {
+                            console.log('Erreur lors de la restauration d\'un objet:', objError);
+                        }
+                    });
+                }
+                
+                this.canvas.backgroundColor = '#f8f9fa';
+                this.updateObjectCount();
+            } catch (error) {
+                console.log('Erreur lors de l\'annulation:', error);
+            }
         }
     }
 
     redo() {
         if (this.historyIndex < this.history.length - 1) {
-            this.historyIndex++;
-            this.canvas.loadFromJSON(this.history[this.historyIndex], () => {
-                this.canvas.renderAll();
-                this.updateLayers();
-            });
-            this.showToast('Action refaite', 'info');
+            try {
+                this.historyIndex++;
+                const state = JSON.parse(this.history[this.historyIndex]);
+                
+                const gridObjects = this.canvas.getObjects().filter(obj => obj.isGrid);
+                this.canvas.clear();
+                
+                gridObjects.forEach(grid => this.canvas.add(grid));
+                
+                if (state.objects && state.objects.length > 0) {
+                    state.objects.forEach(objData => {
+                        try {
+                            fabric.util.enlivenObjects([objData], (objects) => {
+                                objects.forEach(obj => {
+                                    if (obj && typeof obj === 'object') {
+                                        this.canvas.add(obj);
+                                    }
+                                });
+                                this.canvas.renderAll();
+                            });
+                        } catch (objError) {
+                            console.log('Erreur lors de la restauration d\'un objet:', objError);
+                        }
+                    });
+                }
+                
+                this.canvas.backgroundColor = '#f8f9fa';
+                this.updateObjectCount();
+            } catch (error) {
+                console.log('Erreur lors de la restauration:', error);
+            }
         }
     }
 
-    updateLayers() {
-        Object.keys(this.layers).forEach(layerName => {
-            this.layers[layerName].objects = this.canvas.getObjects().filter(obj => obj.layer === layerName);
-        });
-    }
-
-    // ========================================
-    // Exportation
-    // ========================================
-    
-    exportPNG() {
-        const dataURL = this.canvas.toDataURL({
-            format: 'png',
-            quality: 1
-        });
-        const link = document.createElement('a');
-        link.href = dataURL;
-        link.download = `${document.getElementById('projectName').value || 'plan'}.png`;
-        link.click();
-        this.showToast('Plan exporté en PNG', 'success');
-    }
-
-    exportSVG() {
-        const svg = this.canvas.toSVG();
-        const blob = new Blob([svg], { type: 'image/svg+xml' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${document.getElementById('projectName').value || 'plan'}.svg`;
-        link.click();
-        URL.revokeObjectURL(url);
-        this.showToast('Plan exporté en SVG', 'success');
-    }
-
-    exportPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({
-            orientation: 'landscape',
-            unit: 'px',
-            format: [this.canvas.width, this.canvas.height]
-        });
-
-        const imgData = this.canvas.toDataURL('image/png');
-        doc.addImage(imgData, 'PNG', 0, 0, this.canvas.width, this.canvas.height);
-        doc.save(`${document.getElementById('projectName').value || 'plan'}.pdf`);
-        this.showToast('Plan exporté en PDF', 'success');
-    }
-
-    exportDXF() {
-        this.showToast('Exportation DXF non implémentée', 'warning');
-        // Note : L'exportation DXF nécessite une bibliothèque comme dxf-writer
-    }
-
-    print() {
-        window.print();
-        this.showToast('Impression lancée', 'info');
-    }
-
-    // ========================================
-    // Gestion du projet
-    // ========================================
-    
-    newProject() {
-        if (this.hasUnsavedChanges && !confirm('Créer un nouveau projet ? Les modifications non sauvegardées seront perdues.')) {
-            return;
+    // Actions
+    clearCanvas() {
+        if (confirm('Effacer tout le plan ?')) {
+            this.canvas.clear();
+            this.canvas.backgroundColor = '#f8f9fa';
+            this.drawGrid();
+            this.saveState();
+            this.updateObjectCount();
         }
-        this.clearCanvas();
-        this.history = [];
-        this.historyIndex = -1;
-        this.saveState();
-        this.showToast('Nouveau projet créé', 'success');
     }
 
     saveProject() {
-        const data = JSON.stringify(this.canvas);
-        const blob = new Blob([data], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${document.getElementById('projectName').value || 'plan'}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
-        this.hasUnsavedChanges = false;
-        this.updateSaveIndicator();
-        this.showToast('Projet sauvegardé', 'success');
+        try {
+            const cleanObjects = this.canvas.getObjects().filter(obj => 
+                !obj.isGrid && !obj.isPreview && !obj.isEraserIndicator
+            );
+            
+            const safeObjects = cleanObjects.map(obj => {
+                const objData = obj.toObject();
+                delete objData.textAlign;
+                delete objData.textBaseline;
+                return objData;
+            });
+            
+            const projectNameInput = document.getElementById('projectName');
+            const projectName = projectNameInput?.value || 'Mon_Plan';
+            
+            const projectData = {
+                name: projectName,
+                canvas: {
+                    version: this.canvas.version,
+                    objects: safeObjects,
+                    background: this.canvas.backgroundColor
+                },
+                timestamp: new Date().toISOString()
+            };
+
+            const dataStr = JSON.stringify(projectData, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const link = document.createElement('a');
+            link.setAttribute('href', dataUri);
+            link.setAttribute('download', `${projectName.replace(/\s+/g, '_')}.json`);
+            link.click();
+
+            const saveStatus = document.getElementById('saveStatus');
+            if (saveStatus) {
+                saveStatus.textContent = '💾 Sauvegardé';
+            }
+        } catch (error) {
+            console.log('Erreur lors de la sauvegarde du projet:', error);
+            alert('Erreur lors de la sauvegarde du projet');
+        }
     }
 
     loadProject() {
@@ -1284,560 +1332,174 @@ class ArchitectApp {
         input.accept = '.json';
         input.onchange = (e) => {
             const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                this.canvas.loadFromJSON(event.target.result, () => {
-                    this.canvas.renderAll();
-                    this.updateLayers();
-                    this.saveState();
-                    this.showToast('Projet chargé', 'success');
-                });
-            };
-            reader.readAsText(file);
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const projectData = JSON.parse(e.target.result);
+                        
+                        const gridObjects = this.canvas.getObjects().filter(obj => obj.isGrid);
+                        this.canvas.clear();
+                        
+                        gridObjects.forEach(grid => this.canvas.add(grid));
+                        
+                        if (projectData.canvas && projectData.canvas.objects) {
+                            projectData.canvas.objects.forEach(objData => {
+                                try {
+                                    if (objData.textAlign) delete objData.textAlign;
+                                    if (objData.textBaseline) delete objData.textBaseline;
+                                    
+                                    fabric.util.enlivenObjects([objData], (objects) => {
+                                        objects.forEach(obj => {
+                                            if (obj && typeof obj === 'object') {
+                                                this.canvas.add(obj);
+                                            }
+                                        });
+                                        this.canvas.renderAll();
+                                    });
+                                } catch (objError) {
+                                    console.log('Erreur lors du chargement d\'un objet:', objError);
+                                }
+                            });
+                        }
+
+                        if (projectData.name) {
+                            const projectNameInput = document.getElementById('projectName');
+                            if (projectNameInput) {
+                                projectNameInput.value = projectData.name;
+                            }
+                        }
+
+                        this.canvas.backgroundColor = projectData.canvas?.background || '#f8f9fa';
+                        this.saveState();
+                        this.updateObjectCount();
+                        
+                        const saveStatus = document.getElementById('saveStatus');
+                        if (saveStatus) {
+                            saveStatus.textContent = '💾 Chargé';
+                        }
+                        
+                    } catch (error) {
+                        alert('Erreur lors du chargement: ' + error.message);
+                        console.error('Erreur de chargement:', error);
+                    }
+                };
+                reader.readAsText(file);
+            }
         };
         input.click();
     }
 
-    clearCanvas() {
-        this.canvas.clear();
-        this.canvas.backgroundColor = '#f8f9fa';
-        Object.keys(this.layers).forEach(layerName => {
-            this.layers[layerName].objects = [];
-        });
-        this.canvas.renderAll();
+    exportImage() {
+        try {
+            const gridObjects = this.canvas.getObjects().filter(obj => obj.isGrid);
+            gridObjects.forEach(obj => obj.visible = false);
+            
+            this.canvas.renderAll();
+            
+            const projectNameInput = document.getElementById('projectName');
+            const projectName = projectNameInput?.value || 'Mon_Plan';
+            
+            const link = document.createElement('a');
+            link.download = `${projectName}.png`;
+            link.href = this.canvas.toDataURL({
+                format: 'png',
+                quality: 1,
+                multiplier: 2
+            });
+            link.click();
+            
+            gridObjects.forEach(obj => obj.visible = true);
+            this.canvas.renderAll();
+        } catch (error) {
+            console.log('Erreur lors de l\'export:', error);
+            alert('Erreur lors de l\'export de l\'image');
+        }
     }
 
-    // ========================================
-    // Interface et paramètres
-    // ========================================
-    
-    initUI() {
-        this.updateZoomDisplay();
-        this.updateSaveIndicator();
-        this.updateObjectCount();
-    }
-
-    updateZoomDisplay() {
-        const zoom = this.canvas.getZoom();
-        document.getElementById('zoomValue').textContent = `${Math.round(zoom * 100)}%`;
-        document.getElementById('zoomStatus').textContent = `Zoom: ${Math.round(zoom * 100)}%`;
-    }
-
-    updateSaveIndicator() {
-        const indicator = document.getElementById('saveIndicator');
-        indicator.textContent = this.hasUnsavedChanges ? '💾 Non sauvegardé' : '💾 Sauvegardé';
-    }
-
+    // Interface
     updateObjectCount() {
-        const count = this.canvas.getObjects().length;
-        document.getElementById('objectCount').textContent = `Objets: ${count}`;
-    }
-
-    drawGrid() {
-        // Implémenter si nécessaire avec des lignes Fabric.js
-    }
-
-    initRulers() {
-        // Implémenter si nécessaire
-    }
-
-    toggleGrid() {
-        this.drawGrid();
-        this.showToast(`Grille ${document.getElementById('gridToggle').checked ? 'activée' : 'désactivée'}`, 'info');
-    }
-
-    toggleSnap() {
-        this.snapEnabled = document.getElementById('snapToggle').checked;
-        this.showToast(`Accrochage ${this.snapEnabled ? 'activé' : 'désactivé'}`, 'info');
-    }
-
-    toggleGuides() {
-        this.guidesEnabled = document.getElementById('guidesToggle').checked;
-        this.showToast(`Guides ${this.guidesEnabled ? 'activés' : 'désactivés'}`, 'info');
-    }
-
-    toggleRulers() {
-        // Implémenter si nécessaire
-        this.showToast(`Règles ${document.getElementById('rulerToggle').checked ? 'activées' : 'désactivées'}`, 'info');
-    }
-
-    updateZoom() {
-        const zoom = parseFloat(document.getElementById('zoomSlider').value);
-        this.canvas.setZoom(zoom);
-        this.updateZoomDisplay();
-    }
-
-    updateGridSize() {
-        this.gridSize = parseInt(document.getElementById('gridSize').value);
-        this.drawGrid();
-        this.showToast(`Taille de grille: ${this.gridSize}px`, 'info');
-    }
-
-    updateUnitSystem() {
-        this.unitSystem = document.getElementById('unitSystem').value;
-        document.getElementById('unitDisplay').textContent = `Unité: ${this.unitSystem}`;
-        this.showToast(`Unité: ${this.unitSystem}`, 'info');
-    }
-
-    zoomIn() {
-        this.canvas.setZoom(this.canvas.getZoom() * 1.1);
-        this.updateZoomDisplay();
-    }
-
-    zoomOut() {
-        this.canvas.setZoom(this.canvas.getZoom() / 1.1);
-        this.updateZoomDisplay();
-    }
-
-    zoomFit() {
-        const bounds = this.canvas.getObjects().reduce((acc, obj) => {
-            const b = obj.getBoundingRect(true);
-            return {
-                left: Math.min(acc.left, b.left),
-                top: Math.min(acc.top, b.top),
-                right: Math.max(acc.right, b.left + b.width),
-                bottom: Math.max(acc.bottom, b.top + b.height)
-            };
-        }, { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity });
-        const zoom = Math.min(
-            this.canvas.width / (bounds.right - bounds.left),
-            this.canvas.height / (bounds.bottom - bounds.top)
-        ) * 0.9;
-        this.canvas.setZoom(zoom);
-        this.canvas.absolutePan({ x: bounds.left, y: bounds.top });
-        this.updateZoomDisplay();
-    }
-
-    zoom100() {
-        this.canvas.setZoom(1);
-        this.canvas.absolutePan({ x: 0, y: 0 });
-        this.updateZoomDisplay();
-    }
-
-    // ========================================
-    // Propriétés
-    // ========================================
-    
-    updateProperties() {
-        const activeObject = this.canvas.getActiveObject();
-        if (!activeObject) return;
-
-        const strokeColor = document.getElementById('strokeColor').value;
-        const fillColor = document.getElementById('fillColor').value;
-        const strokeWidth = parseInt(document.getElementById('strokeWidth').value);
-        const fontSize = parseInt(document.getElementById('fontSize').value);
-
-        if (activeObject.type === 'textbox') {
-            activeObject.set({ fill: strokeColor, fontSize: fontSize });
-        } else {
-            activeObject.set({
-                stroke: strokeColor,
-                fill: fillColor,
-                strokeWidth: strokeWidth
-            });
-        }
-        activeObject.setCoords();
-        this.canvas.renderAll();
-        this.saveState();
-    }
-
-    updateOpacity() {
-        const activeObject = this.canvas.getActiveObject();
-        if (!activeObject) return;
-
-        const opacity = parseFloat(document.getElementById('opacity').value);
-        activeObject.set('opacity', opacity);
-        document.getElementById('opacityValue').textContent = `${Math.round(opacity * 100)}%`;
-        this.canvas.renderAll();
-        this.saveState();
-    }
-
-    updateRotation() {
-        const activeObject = this.canvas.getActiveObject();
-        if (!activeObject) return;
-
-        const angle = parseInt(document.getElementById('rotation').value);
-        activeObject.set('angle', angle);
-        activeObject.setCoords();
-        this.canvas.renderAll();
-        this.saveState();
-    }
-
-    // ========================================
-    // Menu contextuel
-    // ========================================
-    
-    showContextMenu(e) {
-        e.preventDefault();
-        const menu = document.getElementById('contextMenu');
-        menu.style.left = `${e.pageX}px`;
-        menu.style.top = `${e.pageY}px`;
-        menu.style.display = 'block';
-    }
-
-    hideContextMenu() {
-        document.getElementById('contextMenu').style.display = 'none';
-    }
-
-    handleContextMenuAction(action) {
-        const activeObject = this.canvas.getActiveObject();
-        switch (action) {
-            case 'cut':
-                if (activeObject) {
-                    this.copy();
-                    this.canvas.remove(activeObject);
-                    this.saveState();
-                }
-                break;
-            case 'copy':
-                this.copy();
-                break;
-            case 'paste':
-                this.paste();
-                break;
-            case 'duplicate':
-                this.duplicate();
-                break;
-            case 'delete':
-                if (activeObject) {
-                    this.canvas.remove(activeObject);
-                    this.saveState();
-                    this.showToast('Objet supprimé', 'info');
-                }
-                break;
-            case 'bring-forward':
-                if (activeObject) {
-                    activeObject.bringForward();
-                    this.canvas.renderAll();
-                    this.saveState();
-                }
-                break;
-            case 'send-backward':
-                if (activeObject) {
-                    activeObject.sendBackwards();
-                    this.canvas.renderAll();
-                    this.saveState();
-                }
-                break;
-            case 'bring-to-front':
-                if (activeObject) {
-                    activeObject.bringToFront();
-                    this.canvas.renderAll();
-                    this.saveState();
-                }
-                break;
-            case 'send-to-back':
-                if (activeObject) {
-                    activeObject.sendToBack();
-                    this.canvas.renderAll();
-                    this.saveState();
-                }
-                break;
-            case 'properties':
-                // Peut être implémenté pour ouvrir une modale de propriétés
-                break;
-        }
-        this.hideContextMenu();
-    }
-
-    // ========================================
-    // Copier/Coller/Dupliquer
-    // ========================================
-    
-    copy() {
-        const activeObject = this.canvas.getActiveObject();
-        if (activeObject) {
-            activeObject.clone(cloned => {
-                this.clipboard = cloned;
-                this.showToast('Objet copié', 'info');
-            });
+        const objects = this.canvas.getObjects().filter(obj => 
+            !obj.isGrid && !obj.isPreview && !obj.isEraserIndicator
+        );
+        const objectCount = document.getElementById('objectCount');
+        if (objectCount) {
+            objectCount.textContent = `Objets: ${objects.length}`;
         }
     }
 
-    paste() {
-        if (this.clipboard) {
-            this.clipboard.clone(cloned => {
-                this.canvas.discardActiveObject();
-                cloned.set({
-                    left: cloned.left + 20,
-                    top: cloned.top + 20,
-                    layer: this.currentLayer
-                });
-                this.canvas.add(cloned);
-                this.layers[this.currentLayer].objects.push(cloned);
-                this.canvas.setActiveObject(cloned);
-                this.canvas.renderAll();
-                this.saveState();
-                this.showToast('Objet collé', 'info');
-            });
-        }
-    }
-
-    duplicate() {
-        const activeObject = this.canvas.getActiveObject();
-        if (activeObject) {
-            activeObject.clone(cloned => {
-                this.canvas.discardActiveObject();
-                cloned.set({
-                    left: cloned.left + 20,
-                    top: cloned.top + 20,
-                    layer: this.currentLayer
-                });
-                this.canvas.add(cloned);
-                this.layers[this.currentLayer].objects.push(cloned);
-                this.canvas.setActiveObject(cloned);
-                this.canvas.renderAll();
-                this.saveState();
-                this.showToast('Objet dupliqué', 'info');
-            });
-        }
-    }
-
-    // ========================================
-    // Gestion du thème
-    // ========================================
-    
-    toggleTheme() {
-        this.theme = this.theme === 'light' ? 'dark' : 'light';
-        document.body.classList.toggle('dark-theme');
-        document.getElementById('themeToggle').textContent = this.theme === 'light' ? '🌙' : '☀️';
-        this.showToast(`Thème ${this.theme}`, 'info');
-    }
-
-    loadTheme() {
-        if (this.theme === 'dark') {
-            document.body.classList.add('dark-theme');
-            document.getElementById('themeToggle').textContent = '☀️';
-        }
-    }
-
-    // ========================================
-    // Gestion des guides et accrochage
-    // ========================================
-    
-    snapToGrid(value) {
-        return Math.round(value / this.gridSize) * this.gridSize;
-    }
-
-    showGuides(x, y) {
-        // Implémenter si nécessaire
-    }
-
-    updateGuides(x, y) {
-        // Implémenter si nécessaire
-    }
-
-    hideGuides() {
-        // Implémenter si nécessaire
-    }
-
-    showPreview(x1, y1, x2, y2) {
-        // Implémenter si nécessaire
-    }
-
-    clearPreview() {
-        // Implémenter si nécessaire
-    }
-
-    showDistanceWhileDrawing(x1, y1, x2, y2) {
-        // Implémenter si nécessaire
-    }
-
-    hideDistanceTooltip() {
-        // Implémenter si nécessaire
-    }
-
-    // ========================================
-    // Gestion des événements
-    // ========================================
-    
-    onSelectionCreated(e) {
-        this.updateSelectionInfo();
-    }
-
-    onSelectionUpdated(e) {
-        this.updateSelectionInfo();
-    }
-
-    onSelectionCleared(e) {
-        document.getElementById('selectionInfo').textContent = '';
-        document.getElementById('selectedCount').textContent = '';
-    }
-
-    updateSelectionInfo() {
-        const activeObject = this.canvas.getActiveObject();
-        if (activeObject) {
-            const count = activeObject.type === 'activeSelection' ? activeObject.getObjects().length : 1;
-            document.getElementById('selectedCount').textContent = `Sélectionnés: ${count}`;
-        }
-    }
-
-    onObjectAdded(e) {
+    updateUI() {
         this.updateObjectCount();
-        this.saveState();
+        
+        const zoomValue = document.getElementById('zoomValue');
+        const strokeValue = document.getElementById('strokeValue');
+        const opacityValue = document.getElementById('opacityValue');
+        
+        if (zoomValue) zoomValue.textContent = '100%';
+        if (strokeValue) strokeValue.textContent = '2';
+        if (opacityValue) opacityValue.textContent = '100%';
     }
 
-    onObjectRemoved(e) {
-        this.updateObjectCount();
-        this.updateLayers();
-        this.saveState();
-    }
-
-    onObjectModified(e) {
-        this.saveState();
-    }
-
-    onObjectRotating(e) {
-        document.getElementById('rotation').value = Math.round(e.target.angle);
-    }
-
-    onObjectScaling(e) {
-        // Peut être utilisé pour mettre à jour les propriétés
-    }
-
-    onObjectMoving(e) {
-        if (this.snapEnabled) {
-            e.target.set({
-                left: this.snapToGrid(e.target.left),
-                top: this.snapToGrid(e.target.top)
-            });
-            e.target.setCoords();
-        }
-    }
-
+    // Raccourcis clavier
     handleKeyboard(e) {
-        switch (e.code) {
-            case 'KeyZ':
-                if (e.ctrlKey) this.undo();
-                break;
-            case 'KeyY':
-                if (e.ctrlKey) this.redo();
-                break;
-            case 'KeyC':
-                if (e.ctrlKey) this.copy();
-                break;
-            case 'KeyV':
-                if (e.ctrlKey) this.paste();
-                break;
-            case 'KeyS':
-                if (e.ctrlKey) {
+        if (e.target.tagName === 'INPUT') return;
+
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key.toLowerCase()) {
+                case 'z':
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        this.redo();
+                    } else {
+                        this.undo();
+                    }
+                    break;
+                case 'y':
+                    e.preventDefault();
+                    this.redo();
+                    break;
+                case 's':
                     e.preventDefault();
                     this.saveProject();
-                }
-                break;
-            case 'KeyG':
-                if (e.ctrlKey) {
-                    if (e.shiftKey) {
-                        this.ungroupObjects();
-                    } else {
-                        this.groupObjects();
-                    }
-                }
-                break;
-            case 'Delete':
-                const activeObject = this.canvas.getActiveObject();
-                if (activeObject) {
-                    this.canvas.remove(activeObject);
-                    this.saveState();
-                }
-                break;
-            case 'Space':
-                if (this.currentTool !== 'pan') {
-                    this.selectTool('pan');
-                    e.preventDefault();
-                }
-                break;
-        }
-    }
-
-    handleKeyUp(e) {
-        if (e.code === 'Space' && this.currentTool === 'pan') {
-            this.selectTool('select');
-        }
-    }
-
-    handleResize() {
-        this.canvas.setDimensions({
-            width: document.querySelector('.canvas-wrapper').clientWidth,
-            height: document.querySelector('.canvas-wrapper').clientHeight
-        });
-        this.canvas.renderAll();
-    }
-
-    handleBeforeUnload(e) {
-        if (this.hasUnsavedChanges) {
-            e.preventDefault();
-            e.returnValue = 'Vous avez des modifications non sauvegardées. Voulez-vous quitter ?';
-        }
-    }
-
-    // ========================================
-    // Notifications
-    // ========================================
-    
-    showToast(message, type) {
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        toast.textContent = message;
-        document.getElementById('toastContainer').appendChild(toast);
-        setTimeout(() => {
-            toast.remove();
-        }, 3000);
-    }
-
-    // ========================================
-    // Gestion du loader
-    // ========================================
-    
-    showLoader() {
-        document.getElementById('loader').style.display = 'flex';
-    }
-
-    hideLoader() {
-        document.getElementById('loader').style.display = 'none';
-    }
-
-    // ========================================
-    // Gestion des vues
-    // ========================================
-    
-    switchView(view) {
-        document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`[data-view="${view}"]`).classList.add('active');
-        // Implémenter la logique pour 2D/3D/vue divisée si nécessaire
-        this.showToast(`Vue ${view} activée`, 'info');
-    }
-
-    // ========================================
-    // Gestion des unités
-    // ========================================
-    
-    convertToUnit(pixels) {
-        return pixels / this.pixelsPerUnit[this.unitSystem];
-    }
-
-    // ========================================
-    // Gestion de l'autosave
-    // ========================================
-    
-    startAutoSave() {
-        this.autoSaveInterval = setInterval(() => {
-            if (this.hasUnsavedChanges) {
-                this.saveProject();
-                document.getElementById('autoSaveIndicator').textContent = '🔄 Sauvegarde auto effectuée';
-                setTimeout(() => {
-                    document.getElementById('autoSaveIndicator').textContent = '🔄 Sauvegarde auto';
-                }, 10000);
+                    break;
             }
-        }, 100000);
-    }
-
-    toggleMobileMenu() {
-        const toolbar = document.getElementById('toolbar');
-        toolbar.classList.toggle('mobile-open');
+        } else {
+            switch(e.key) {
+                case 'Delete':
+                case 'Backspace':
+                    const activeObject = this.canvas.getActiveObject();
+                    if (activeObject && !activeObject.isGrid && !activeObject.isPreview && !activeObject.isEraserIndicator) {
+                        this.canvas.remove(activeObject);
+                        this.saveState();
+                        this.updateObjectCount();
+                    }
+                    break;
+                case 'Escape':
+                    this.canvas.discardActiveObject();
+                    this.canvas.renderAll();
+                    break;
+            }
+        }
     }
 }
 
+// Initialisation
 document.addEventListener('DOMContentLoaded', () => {
-    new ArchitectApp();
+    window.app = new SimpleArchitectApp();
+});
+
+// Gestion du redimensionnement
+window.addEventListener('resize', () => {
+    if (window.app && window.app.canvas) {
+        window.app.canvas.calcOffset();
+    }
+});
+
+// Alerte avant fermeture si modifications
+window.addEventListener('beforeunload', (e) => {
+    const saveStatus = document.getElementById('saveStatus');
+    if (saveStatus && saveStatus.textContent.includes('Modifié')) {
+        e.preventDefault();
+        e.returnValue = 'Modifications non sauvegardées !';
+    }
 });
