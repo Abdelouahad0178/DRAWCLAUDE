@@ -1,4 +1,6 @@
-// Application ArchiDesign Complète
+/**
+ * Application ArchiDesign pour la création de plans architecturaux
+ */
 class SimpleArchitectApp {
     constructor() {
         this.canvas = null;
@@ -16,6 +18,9 @@ class SimpleArchitectApp {
         this.init();
     }
 
+    /**
+     * Initialisation de l'application
+     */
     init() {
         this.setupCanvas();
         this.setupEventListeners();
@@ -26,7 +31,9 @@ class SimpleArchitectApp {
         console.log('🏛️ ArchiDesign initialisé avec succès!');
     }
 
-    // Configuration du canvas
+    /**
+     * Configuration du canvas Fabric.js
+     */
     setupCanvas() {
         this.canvas = new fabric.Canvas('canvas', {
             backgroundColor: '#f8f9fa',
@@ -53,55 +60,60 @@ class SimpleArchitectApp {
         });
     }
 
-    // Configuration des événements
+    /**
+     * Configuration des écouteurs d'événements
+     */
     setupEventListeners() {
+        const elements = {
+            strokeColor: document.getElementById('strokeColor'),
+            fillColor: document.getElementById('fillColor'),
+            strokeWidth: document.getElementById('strokeWidth'),
+            opacity: document.getElementById('opacity'),
+            gridToggle: document.getElementById('gridToggle'),
+            snapToggle: document.getElementById('snapToggle'),
+            autoSelectToggle: document.getElementById('autoSelectToggle'),
+            zoomSlider: document.getElementById('zoomSlider'),
+            undoBtn: document.getElementById('undoBtn'),
+            redoBtn: document.getElementById('redoBtn'),
+            clearBtn: document.getElementById('clearBtn'),
+            saveBtn: document.getElementById('saveBtn'),
+            loadBtn: document.getElementById('loadBtn'),
+            exportBtn: document.getElementById('exportBtn')
+        };
+
         // Outils
         document.querySelectorAll('.tool-btn').forEach(btn => {
             btn.addEventListener('click', () => this.selectTool(btn.dataset.tool));
         });
 
         // Propriétés
-        const strokeColor = document.getElementById('strokeColor');
-        const fillColor = document.getElementById('fillColor');
-        const strokeWidth = document.getElementById('strokeWidth');
-        const opacity = document.getElementById('opacity');
-
-        if (strokeColor) strokeColor.addEventListener('change', this.updateProperties.bind(this));
-        if (fillColor) fillColor.addEventListener('change', this.updateProperties.bind(this));
-        if (strokeWidth) strokeWidth.addEventListener('input', this.updateStrokeWidth.bind(this));
-        if (opacity) opacity.addEventListener('input', this.updateOpacity.bind(this));
+        if (elements.strokeColor) elements.strokeColor.addEventListener('change', this.updateProperties.bind(this));
+        if (elements.fillColor) elements.fillColor.addEventListener('change', this.updateProperties.bind(this));
+        if (elements.strokeWidth) elements.strokeWidth.addEventListener('input', this.updateStrokeWidth.bind(this));
+        if (elements.opacity) elements.opacity.addEventListener('input', this.updateOpacity.bind(this));
 
         // Paramètres
-        const gridToggle = document.getElementById('gridToggle');
-        const snapToggle = document.getElementById('snapToggle');
-        const autoSelectToggle = document.getElementById('autoSelectToggle');
-        const zoomSlider = document.getElementById('zoomSlider');
-
-        if (gridToggle) gridToggle.addEventListener('change', this.toggleGrid.bind(this));
-        if (snapToggle) snapToggle.addEventListener('change', this.toggleSnap.bind(this));
-        if (autoSelectToggle) autoSelectToggle.addEventListener('change', this.toggleAutoSelect.bind(this));
-        if (zoomSlider) zoomSlider.addEventListener('input', this.updateZoom.bind(this));
+        if (elements.gridToggle) elements.gridToggle.addEventListener('change', this.toggleGrid.bind(this));
+        if (elements.snapToggle) elements.snapToggle.addEventListener('change', this.toggleSnap.bind(this));
+        if (elements.autoSelectToggle) elements.autoSelectToggle.addEventListener('change', this.toggleAutoSelect.bind(this));
+        if (elements.zoomSlider) elements.zoomSlider.addEventListener('input', this.updateZoom.bind(this));
 
         // Actions
-        const undoBtn = document.getElementById('undoBtn');
-        const redoBtn = document.getElementById('redoBtn');
-        const clearBtn = document.getElementById('clearBtn');
-        const saveBtn = document.getElementById('saveBtn');
-        const loadBtn = document.getElementById('loadBtn');
-        const exportBtn = document.getElementById('exportBtn');
-
-        if (undoBtn) undoBtn.addEventListener('click', this.undo.bind(this));
-        if (redoBtn) redoBtn.addEventListener('click', this.redo.bind(this));
-        if (clearBtn) clearBtn.addEventListener('click', this.clearCanvas.bind(this));
-        if (saveBtn) saveBtn.addEventListener('click', this.saveProject.bind(this));
-        if (loadBtn) loadBtn.addEventListener('click', this.loadProject.bind(this));
-        if (exportBtn) exportBtn.addEventListener('click', this.exportImage.bind(this));
+        if (elements.undoBtn) elements.undoBtn.addEventListener('click', this.undo.bind(this));
+        if (elements.redoBtn) elements.redoBtn.addEventListener('click', this.redo.bind(this));
+        if (elements.clearBtn) elements.clearBtn.addEventListener('click', this.clearCanvas.bind(this));
+        if (elements.saveBtn) elements.saveBtn.addEventListener('click', this.saveProject.bind(this));
+        if (elements.loadBtn) elements.loadBtn.addEventListener('click', this.loadProject.bind(this));
+        if (elements.exportBtn) elements.exportBtn.addEventListener('click', this.exportImage.bind(this));
 
         // Raccourcis clavier
         document.addEventListener('keydown', this.handleKeyboard.bind(this));
     }
 
-    // Sélection d'outil
+    /**
+     * Sélection d'un outil de dessin
+     * @param {string} tool - Nom de l'outil à sélectionner
+     */
     selectTool(tool) {
         // Nettoyer l'état précédent
         this.isDrawing = false;
@@ -184,7 +196,10 @@ class SimpleArchitectApp {
         console.log(`Outil sélectionné: ${tool}`);
     }
 
-    // Gestion de la souris
+    /**
+     * Gestion de l'événement mouse:down
+     * @param {Object} e - Événement Fabric.js
+     */
     handleMouseDown(e) {
         if (this.currentTool === 'select') return;
         
@@ -206,11 +221,15 @@ class SimpleArchitectApp {
             this.saveState();
             
             if (this.autoSelectAfterDraw) {
-                setTimeout(() => this.selectTool('select'), 100);
+                this.selectTool('select');
             }
         }
     }
 
+    /**
+     * Gestion de l'événement mouse:move
+     * @param {Object} e - Événement Fabric.js
+     */
     handleMouseMove(e) {
         if (!this.isDrawing || this.currentTool === 'select') return;
         
@@ -236,6 +255,10 @@ class SimpleArchitectApp {
         }
     }
 
+    /**
+     * Gestion de l'événement mouse:up
+     * @param {Object} e - Événement Fabric.js
+     */
     handleMouseUp(e) {
         if (!this.isDrawing || this.currentTool === 'select') return;
         
@@ -262,7 +285,7 @@ class SimpleArchitectApp {
                 this.saveState();
                 
                 if (this.autoSelectAfterDraw) {
-                    setTimeout(() => this.selectTool('select'), 100);
+                    this.selectTool('select');
                 }
             }
         }
@@ -270,7 +293,13 @@ class SimpleArchitectApp {
         this.isDrawing = false;
     }
 
-    // Prévisualisation
+    /**
+     * Création d'une prévisualisation pour l'outil actif
+     * @param {number} x1 - Coordonnée X de départ
+     * @param {number} y1 - Coordonnée Y de départ
+     * @param {number} x2 - Coordonnée X de fin
+     * @param {number} y2 - Coordonnée Y de fin
+     */
     createPreview(x1, y1, x2, y2) {
         try {
             const strokeColorInput = document.getElementById('strokeColor');
@@ -404,10 +433,13 @@ class SimpleArchitectApp {
                 this.canvas.renderAll();
             }
         } catch (error) {
-            console.log('Erreur lors de la prévisualisation:', error);
+            console.error(`Erreur lors de la prévisualisation de ${this.currentTool}:`, error);
         }
     }
 
+    /**
+     * Suppression des objets de prévisualisation
+     */
     removePreview() {
         const objects = this.canvas.getObjects();
         objects.forEach(obj => {
@@ -418,7 +450,13 @@ class SimpleArchitectApp {
         this.canvas.renderAll();
     }
 
-    // Création d'objets
+    /**
+     * Création d'un nouvel objet sur le canevas
+     * @param {number} x1 - Coordonnée X de départ
+     * @param {number} y1 - Coordonnée Y de départ
+     * @param {number} x2 - Coordonnée X de fin
+     * @param {number} y2 - Coordonnée Y de fin
+     */
     createObject(x1, y1, x2, y2) {
         if (this.creatingObject) return;
         this.creatingObject = true;
@@ -527,8 +565,8 @@ class SimpleArchitectApp {
 
                 case 'text':
                     const text = prompt('Entrez le texte:');
-                    if (text && text.trim() !== '') {
-                        obj = new fabric.Text(text, {
+                    if (text && text.trim() !== '' && text.length <= 100) {
+                        obj = new fabric.Text(text.trim(), {
                             left: x1,
                             top: y1,
                             fill: strokeColor,
@@ -547,15 +585,19 @@ class SimpleArchitectApp {
                 console.log(`Objet créé: ${this.currentTool}`, obj);
             }
         } catch (error) {
-            console.log('Erreur lors de la création:', error);
+            console.error(`Erreur lors de la création de l'objet ${this.currentTool}:`, error);
         } finally {
-            setTimeout(() => {
-                this.creatingObject = false;
-            }, 200);
+            this.creatingObject = false;
         }
     }
 
-    // Éléments architecturaux prédéfinis
+    /**
+     * Création d'une porte
+     * @param {number} x - Position X
+     * @param {number} y - Position Y
+     * @param {number} opacity - Opacité de l'objet
+     * @returns {fabric.Group} Objet porte
+     */
     createDoor(x, y, opacity) {
         const doorFrame = new fabric.Rect({
             left: -25,
@@ -574,14 +616,24 @@ class SimpleArchitectApp {
             fill: '#FFD700'
         });
 
-        return new fabric.Group([doorFrame, handle], {
+        const group = new fabric.Group([doorFrame, handle], {
             left: x,
             top: y,
-            opacity: opacity,
-            type: 'door'
+            opacity: opacity
         });
+        
+        group.type = 'door';
+        group.customType = 'door';
+        return group;
     }
 
+    /**
+     * Création d'une fenêtre
+     * @param {number} x - Position X
+     * @param {number} y - Position Y
+     * @param {number} opacity - Opacité de l'objet
+     * @returns {fabric.Group} Objet fenêtre
+     */
     createWindow(x, y, opacity) {
         const frame = new fabric.Rect({
             left: -30,
@@ -598,14 +650,26 @@ class SimpleArchitectApp {
             strokeWidth: 1
         });
 
-        return new fabric.Group([frame, cross], {
+        const group = new fabric.Group([frame, cross], {
             left: x,
             top: y,
-            opacity: opacity,
-            type: 'window'
+            opacity: opacity
         });
+        
+        group.type = 'window';
+        group.customType = 'window';
+        return group;
     }
 
+    /**
+     * Création d'un escalier
+     * @param {number} x1 - Coordonnée X de départ
+     * @param {number} y1 - Coordonnée Y de départ
+     * @param {number} x2 - Coordonnée X de fin
+     * @param {number} y2 - Coordonnée Y de fin
+     * @param {number} opacity - Opacité de l'objet
+     * @returns {fabric.Group} Objet escalier
+     */
     createStairs(x1, y1, x2, y2, opacity) {
         const width = Math.abs(x2 - x1) || 80;
         const height = Math.abs(y2 - y1) || 120;
@@ -646,14 +710,24 @@ class SimpleArchitectApp {
         });
         steps.push(arrow);
 
-        return new fabric.Group(steps, {
+        const group = new fabric.Group(steps, {
             left: Math.min(x1, x2),
             top: Math.min(y1, y2),
-            opacity: opacity,
-            type: 'stairs'
+            opacity: opacity
         });
+        
+        group.type = 'stairs';
+        group.customType = 'stairs';
+        return group;
     }
 
+    /**
+     * Création d'un ascenseur
+     * @param {number} x - Position X
+     * @param {number} y - Position Y
+     * @param {number} opacity - Opacité de l'objet
+     * @returns {fabric.Group} Objet ascenseur
+     */
     createElevator(x, y, opacity) {
         const cabin = new fabric.Rect({
             left: -30,
@@ -705,14 +779,28 @@ class SimpleArchitectApp {
             originY: 'center'
         });
 
-        return new fabric.Group([cabin, door1, door2, buttons, symbol], {
+        const group = new fabric.Group([cabin, door1, door2, buttons, symbol], {
             left: x,
             top: y,
-            opacity: opacity,
-            type: 'elevator'
+            opacity: opacity
         });
+        
+        group.type = 'elevator';
+        group.customType = 'elevator';
+        return group;
     }
 
+    /**
+     * Création d'un voile béton
+     * @param {number} x1 - Coordonnée X de départ
+     * @param {number} y1 - Coordonnée Y de départ
+     * @param {number} x2 - Coordonnée X de fin
+     * @param {number} y2 - Coordonnée Y de fin
+     * @param {string} color - Couleur du contour
+     * @param {number} strokeWidth - Épaisseur du contour
+     * @param {number} opacity - Opacité de l'objet
+     * @returns {fabric.Group} Objet voile
+     */
     createVoile(x1, y1, x2, y2, color, strokeWidth, opacity) {
         const width = Math.abs(x2 - x1) || 20;
         const height = Math.abs(y2 - y1) || 100;
@@ -738,11 +826,23 @@ class SimpleArchitectApp {
             hatches.push(hatch);
         }
 
-        return new fabric.Group([voile, ...hatches], {
-            type: 'voile'
-        });
+        const group = new fabric.Group([voile, ...hatches]);
+        group.type = 'voile';
+        group.customType = 'voile';
+        return group;
     }
 
+    /**
+     * Création d'une gaine technique
+     * @param {number} x1 - Coordonnée X de départ
+     * @param {number} y1 - Coordonnée Y de départ
+     * @param {number} x2 - Coordonnée X de fin
+     * @param {number} y2 - Coordonnée Y de fin
+     * @param {string} color - Couleur du contour
+     * @param {number} strokeWidth - Épaisseur du contour
+     * @param {number} opacity - Opacité de l'objet
+     * @returns {fabric.Group} Objet gaine
+     */
     createGaine(x1, y1, x2, y2, color, strokeWidth, opacity) {
         const width = Math.abs(x2 - x1) || 40;
         const height = Math.abs(y2 - y1) || 40;
@@ -782,11 +882,19 @@ class SimpleArchitectApp {
             originY: 'center'
         });
 
-        return new fabric.Group([conduit, elecSymbol, plumbSymbol], {
-            type: 'gaine'
-        });
+        const group = new fabric.Group([conduit, elecSymbol, plumbSymbol]);
+        group.type = 'gaine';
+        group.customType = 'gaine';
+        return group;
     }
 
+    /**
+     * Création d'un espace technique
+     * @param {number} x - Position X
+     * @param {number} y - Position Y
+     * @param {number} opacity - Opacité de l'objet
+     * @returns {fabric.Group} Objet espace technique
+     */
     createTechSpace(x, y, opacity) {
         const room = new fabric.Rect({
             left: -40,
@@ -839,15 +947,21 @@ class SimpleArchitectApp {
             originY: 'center'
         });
 
-        return new fabric.Group([room, equipment1, equipment2, equipment3, label], {
+        const group = new fabric.Group([room, equipment1, equipment2, equipment3, label], {
             left: x,
             top: y,
-            opacity: opacity,
-            type: 'tech-space'
+            opacity: opacity
         });
+        
+        group.type = 'tech-space';
+        group.customType = 'tech-space';
+        return group;
     }
 
-    // Fonction gomme
+    /**
+     * Gestion de l'outil gomme
+     * @param {Object} pointer - Coordonnées du pointeur
+     */
     handleEraser(pointer) {
         const x = pointer.x;
         const y = pointer.y;
@@ -872,6 +986,12 @@ class SimpleArchitectApp {
         this.canvas.renderAll();
     }
 
+    /**
+     * Affichage de l'indicateur de gomme
+     * @param {number} x - Position X
+     * @param {number} y - Position Y
+     * @param {number} size - Taille de l'indicateur
+     */
     showEraserIndicator(x, y, size) {
         const oldIndicator = this.canvas.getObjects().find(obj => obj.isEraserIndicator);
         if (oldIndicator) {
@@ -895,6 +1015,9 @@ class SimpleArchitectApp {
         this.canvas.add(indicator);
     }
 
+    /**
+     * Masquer l'indicateur de gomme
+     */
     hideEraserIndicator() {
         const indicator = this.canvas.getObjects().find(obj => obj.isEraserIndicator);
         if (indicator) {
@@ -903,6 +1026,14 @@ class SimpleArchitectApp {
         }
     }
 
+    /**
+     * Vérifie si un point est proche d'un objet
+     * @param {number} x - Coordonnée X du point
+     * @param {number} y - Coordonnée Y du point
+     * @param {Object} obj - Objet Fabric.js
+     * @param {number} tolerance - Tolérance en pixels
+     * @returns {boolean} Vrai si le point est proche
+     */
     isPointNearObject(x, y, obj, tolerance) {
         const objBounds = obj.getBoundingRect();
         return (x >= objBounds.left - tolerance && 
@@ -911,6 +1042,13 @@ class SimpleArchitectApp {
                 y <= objBounds.top + objBounds.height + tolerance);
     }
 
+    /**
+     * Efface ou divise une ligne
+     * @param {Object} lineObj - Objet ligne Fabric.js
+     * @param {number} x - Position X du pointeur
+     * @param {number} y - Position Y du pointeur
+     * @param {number} tolerance - Tolérance en pixels
+     */
     eraseFromLine(lineObj, x, y, tolerance) {
         if (lineObj.type !== 'line' && lineObj.type !== 'wall') return;
 
@@ -942,15 +1080,42 @@ class SimpleArchitectApp {
         const distance = Math.sqrt((x - xx) * (x - xx) + (y - yy) * (y - yy));
 
         if (distance <= tolerance) {
+            // Diviser la ligne en deux segments si le point est à l'intérieur
+            if (param > 0.2 && param < 0.8) {
+                const segment1 = new fabric.Line([x1, y1, xx, yy], {
+                    stroke: lineObj.stroke,
+                    strokeWidth: lineObj.strokeWidth,
+                    opacity: lineObj.opacity,
+                    selectable: true,
+                    type: lineObj.type
+                });
+                const segment2 = new fabric.Line([xx, yy, x2, y2], {
+                    stroke: lineObj.stroke,
+                    strokeWidth: lineObj.strokeWidth,
+                    opacity: lineObj.opacity,
+                    selectable: true,
+                    type: lineObj.type
+                });
+                this.canvas.add(segment1, segment2);
+            }
             this.canvas.remove(lineObj);
         }
     }
 
-    // Utilitaires
+    /**
+     * Alignement à la grille
+     * @param {number} value - Valeur à aligner
+     * @returns {number} Valeur alignée
+     */
     snapToGrid(value) {
         return this.snapEnabled ? Math.round(value / this.gridSize) * this.gridSize : value;
     }
 
+    /**
+     * Conversion RGB vers hexadécimal
+     * @param {string} rgb - Couleur au format RGB
+     * @returns {string} Couleur au format hexadécimal
+     */
     rgbToHex(rgb) {
         if (!rgb) return '#000000';
         if (rgb.startsWith('#')) return rgb;
@@ -965,6 +1130,9 @@ class SimpleArchitectApp {
         return rgb.startsWith('#') ? rgb : '#000000';
     }
 
+    /**
+     * Dessin de la grille (optimisé pour la zone visible)
+     */
     drawGrid() {
         const objects = this.canvas.getObjects();
         objects.forEach(obj => {
@@ -974,24 +1142,39 @@ class SimpleArchitectApp {
         });
 
         const gridToggle = document.getElementById('gridToggle');
-        if (!gridToggle || !gridToggle.checked) return;
+        if (!gridToggle || !gridToggle.checked) {
+            this.canvas.renderAll();
+            return;
+        }
 
+        const zoom = this.canvas.getZoom() || 1;
+        const gridSize = this.gridSize * zoom;
+        const vpt = this.canvas.viewportTransform;
+        const viewWidth = this.canvas.width / zoom;
+        const viewHeight = this.canvas.height / zoom;
         const gridLines = [];
 
-        for (let i = 0; i <= this.canvas.width; i += this.gridSize) {
-            gridLines.push(new fabric.Line([i, 0, i, this.canvas.height], {
+        // Calculer les limites visibles
+        const left = -vpt[4] / zoom;
+        const top = -vpt[5] / zoom;
+        const right = left + viewWidth;
+        const bottom = top + viewHeight;
+
+        // Dessiner seulement les lignes dans la zone visible
+        for (let i = Math.floor(left / gridSize) * gridSize; i <= right; i += gridSize) {
+            gridLines.push(new fabric.Line([i, top, i, bottom], {
                 stroke: '#e0e0e0',
-                strokeWidth: 1,
+                strokeWidth: 1 / zoom,
                 selectable: false,
                 evented: false,
                 isGrid: true
             }));
         }
 
-        for (let i = 0; i <= this.canvas.height; i += this.gridSize) {
-            gridLines.push(new fabric.Line([0, i, this.canvas.width, i], {
+        for (let i = Math.floor(top / gridSize) * gridSize; i <= bottom; i += gridSize) {
+            gridLines.push(new fabric.Line([left, i, right, i], {
                 stroke: '#e0e0e0',
-                strokeWidth: 1,
+                strokeWidth: 1 / zoom,
                 selectable: false,
                 evented: false,
                 isGrid: true
@@ -1006,7 +1189,9 @@ class SimpleArchitectApp {
         this.canvas.renderAll();
     }
 
-    // Gestion des propriétés
+    /**
+     * Mise à jour des propriétés de l'objet sélectionné
+     */
     updateProperties() {
         const activeObject = this.canvas.getActiveObject();
         if (!activeObject) return;
@@ -1051,10 +1236,13 @@ class SimpleArchitectApp {
             this.canvas.renderAll();
             this.saveState();
         } catch (error) {
-            console.log('Erreur lors de la mise à jour des propriétés:', error);
+            console.error('Erreur lors de la mise à jour des propriétés:', error);
         }
     }
 
+    /**
+     * Mise à jour de l'épaisseur du contour
+     */
     updateStrokeWidth() {
         const strokeWidthInput = document.getElementById('strokeWidth');
         const strokeValue = document.getElementById('strokeValue');
@@ -1066,6 +1254,9 @@ class SimpleArchitectApp {
         this.updateProperties();
     }
 
+    /**
+     * Mise à jour de l'opacité
+     */
     updateOpacity() {
         const opacityInput = document.getElementById('opacity');
         const opacityValue = document.getElementById('opacityValue');
@@ -1077,7 +1268,10 @@ class SimpleArchitectApp {
         this.updateProperties();
     }
 
-    // Gestion de la sélection
+    /**
+     * Gestion de la sélection d'un objet
+     * @param {Object} e - Événement Fabric.js
+     */
     handleSelection(e) {
         const obj = e.selected[0];
         if (obj) {
@@ -1089,6 +1283,9 @@ class SimpleArchitectApp {
         }
     }
 
+    /**
+     * Gestion de la désélection
+     */
     handleSelectionClear() {
         const selectionInfo = document.getElementById('selection');
         if (selectionInfo) {
@@ -1096,6 +1293,10 @@ class SimpleArchitectApp {
         }
     }
 
+    /**
+     * Mise à jour des champs de propriétés à partir d'un objet
+     * @param {Object} obj - Objet Fabric.js
+     */
     updatePropertiesFromObject(obj) {
         if (!obj) return;
 
@@ -1128,25 +1329,36 @@ class SimpleArchitectApp {
                 if (opacityValue) opacityValue.textContent = Math.round(opacity * 100) + '%';
             }
         } catch (error) {
-            console.log('Erreur lors de la mise à jour des propriétés:', error);
+            console.error('Erreur lors de la mise à jour des propriétés:', error);
         }
     }
 
-    // Paramètres
+    /**
+     * Basculement de l'affichage de la grille
+     */
     toggleGrid() {
         this.drawGrid();
     }
 
+    /**
+     * Basculement de l'accrochage à la grille
+     */
     toggleSnap() {
         this.snapEnabled = document.getElementById('snapToggle')?.checked ?? true;
         console.log('Accrochage:', this.snapEnabled ? 'activé' : 'désactivé');
     }
 
+    /**
+     * Basculement de la sélection automatique après dessin
+     */
     toggleAutoSelect() {
         this.autoSelectAfterDraw = document.getElementById('autoSelectToggle')?.checked ?? true;
         console.log('Retour auto à la sélection:', this.autoSelectAfterDraw ? 'activé' : 'désactivé');
     }
 
+    /**
+     * Mise à jour du niveau de zoom
+     */
     updateZoom() {
         const zoomSlider = document.getElementById('zoomSlider');
         if (!zoomSlider) return;
@@ -1159,9 +1371,12 @@ class SimpleArchitectApp {
         
         if (zoomValue) zoomValue.textContent = Math.round(zoom * 100) + '%';
         if (zoomInfo) zoomInfo.textContent = `Zoom: ${Math.round(zoom * 100)}%`;
+        this.drawGrid();
     }
 
-    // Historique
+    /**
+     * Sauvegarde de l'état du canevas
+     */
     saveState() {
         try {
             const objectsToSave = this.canvas.getObjects().filter(obj => 
@@ -1169,11 +1384,30 @@ class SimpleArchitectApp {
             );
             
             const cleanObjects = objectsToSave.map(obj => {
-                const objData = obj.toObject();
-                delete objData.textAlign;
-                delete objData.textBaseline;
-                return objData;
-            });
+                try {
+                    const objData = obj.toObject(['type', 'customType', 'left', 'top', 'width', 'height', 'fill', 'stroke', 'strokeWidth', 'opacity', 'angle', 'scaleX', 'scaleY', 'x1', 'y1', 'x2', 'y2', 'radius', 'text', 'fontSize', 'fontFamily']);
+                    delete objData.textAlign;
+                    delete objData.textBaseline;
+                    delete objData.clipPath;
+                    
+                    objData.type = obj.customType || obj.type || 'rect';
+                    
+                    return objData;
+                } catch (error) {
+                    console.error('Erreur lors de la sérialisation d\'un objet:', error);
+                    return {
+                        type: 'rect',
+                        left: obj.left || 0,
+                        top: obj.top || 0,
+                        width: 50,
+                        height: 50,
+                        fill: 'rgba(200, 200, 200, 0.5)',
+                        stroke: '#666666',
+                        strokeWidth: 1,
+                        opacity: obj.opacity || 1
+                    };
+                }
+            }).filter(obj => obj !== null);
             
             const canvasState = {
                 version: this.canvas.version,
@@ -1195,10 +1429,13 @@ class SimpleArchitectApp {
                 saveStatus.textContent = '💾 Modifié';
             }
         } catch (error) {
-            console.log('Erreur lors de la sauvegarde:', error);
+            console.error('Erreur lors de la sauvegarde de l\'état:', error);
         }
     }
 
+    /**
+     * Annulation de la dernière action
+     */
     undo() {
         if (this.historyIndex > 0) {
             try {
@@ -1211,30 +1448,20 @@ class SimpleArchitectApp {
                 gridObjects.forEach(grid => this.canvas.add(grid));
                 
                 if (state.objects && state.objects.length > 0) {
-                    state.objects.forEach(objData => {
-                        try {
-                            fabric.util.enlivenObjects([objData], (objects) => {
-                                objects.forEach(obj => {
-                                    if (obj && typeof obj === 'object') {
-                                        this.canvas.add(obj);
-                                    }
-                                });
-                                this.canvas.renderAll();
-                            });
-                        } catch (objError) {
-                            console.log('Erreur lors de la restauration d\'un objet:', objError);
-                        }
-                    });
+                    this.loadObjectsFromData(state.objects);
                 }
                 
                 this.canvas.backgroundColor = '#f8f9fa';
                 this.updateObjectCount();
             } catch (error) {
-                console.log('Erreur lors de l\'annulation:', error);
+                console.error('Erreur lors de l\'annulation:', error);
             }
         }
     }
 
+    /**
+     * Restauration de l'action suivante
+     */
     redo() {
         if (this.historyIndex < this.history.length - 1) {
             try {
@@ -1247,31 +1474,207 @@ class SimpleArchitectApp {
                 gridObjects.forEach(grid => this.canvas.add(grid));
                 
                 if (state.objects && state.objects.length > 0) {
-                    state.objects.forEach(objData => {
-                        try {
-                            fabric.util.enlivenObjects([objData], (objects) => {
-                                objects.forEach(obj => {
-                                    if (obj && typeof obj === 'object') {
-                                        this.canvas.add(obj);
-                                    }
-                                });
-                                this.canvas.renderAll();
-                            });
-                        } catch (objError) {
-                            console.log('Erreur lors de la restauration d\'un objet:', objError);
-                        }
-                    });
+                    this.loadObjectsFromData(state.objects);
                 }
                 
                 this.canvas.backgroundColor = '#f8f9fa';
                 this.updateObjectCount();
             } catch (error) {
-                console.log('Erreur lors de la restauration:', error);
+                console.error('Erreur lors de la restauration:', error);
             }
         }
     }
 
-    // Actions
+    /**
+     * Chargement des objets à partir des données
+     * @param {Array} objectsData - Données des objets
+     */
+    loadObjectsFromData(objectsData) {
+        objectsData.forEach(objData => {
+            try {
+                if (objData.textAlign) delete objData.textAlign;
+                if (objData.textBaseline) delete objData.textBaseline;
+                
+                let obj = null;
+                
+                switch(objData.type) {
+                    case 'rect':
+                    case 'rectangle':
+                        obj = new fabric.Rect({
+                            left: objData.left || 0,
+                            top: objData.top || 0,
+                            width: objData.width || 50,
+                            height: objData.height || 50,
+                            fill: objData.fill || '#ffffff',
+                            stroke: objData.stroke || '#000000',
+                            strokeWidth: objData.strokeWidth || 1,
+                            opacity: objData.opacity || 1,
+                            angle: objData.angle || 0,
+                            scaleX: objData.scaleX || 1,
+                            scaleY: objData.scaleY || 1
+                        });
+                        break;
+                        
+                    case 'circle':
+                        obj = new fabric.Circle({
+                            left: objData.left || 0,
+                            top: objData.top || 0,
+                            radius: objData.radius || 25,
+                            fill: objData.fill || '#ffffff',
+                            stroke: objData.stroke || '#000000',
+                            strokeWidth: objData.strokeWidth || 1,
+                            opacity: objData.opacity || 1,
+                            angle: objData.angle || 0,
+                            scaleX: objData.scaleX || 1,
+                            scaleY: objData.scaleY || 1
+                        });
+                        break;
+                        
+                    case 'line':
+                    case 'wall':
+                        obj = new fabric.Line([
+                            objData.x1 || 0, 
+                            objData.y1 || 0, 
+                            objData.x2 || 50, 
+                            objData.y2 || 50
+                        ], {
+                            left: objData.left || 0,
+                            top: objData.top || 0,
+                            stroke: objData.stroke || '#000000',
+                            strokeWidth: objData.strokeWidth || 1,
+                            opacity: objData.opacity || 1,
+                            angle: objData.angle || 0,
+                            scaleX: objData.scaleX || 1,
+                            scaleY: objData.scaleY || 1
+                        });
+                        break;
+                        
+                    case 'text':
+                        obj = new fabric.Text(objData.text || 'Texte', {
+                            left: objData.left || 0,
+                            top: objData.top || 0,
+                            fill: objData.fill || '#000000',
+                            fontSize: objData.fontSize || 16,
+                            fontFamily: objData.fontFamily || 'Arial, sans-serif',
+                            opacity: objData.opacity || 1,
+                            angle: objData.angle || 0,
+                            scaleX: objData.scaleX || 1,
+                            scaleY: objData.scaleY || 1
+                        });
+                        break;
+                        
+                    case 'group':
+                    case 'door':
+                    case 'window':
+                    case 'elevator':
+                    case 'stairs':
+                    case 'voile':
+                    case 'gaine':
+                    case 'tech-space':
+                        obj = this.recreateComplexObject(objData);
+                        break;
+                        
+                    default:
+                        try {
+                            obj = new fabric.Rect({
+                                left: objData.left || 0,
+                                top: objData.top || 0,
+                                width: objData.width || 50,
+                                height: objData.height || 50,
+                                fill: objData.fill || 'transparent',
+                                stroke: objData.stroke || '#000000',
+                                strokeWidth: objData.strokeWidth || 1,
+                                opacity: objData.opacity || 1
+                            });
+                        } catch (defaultError) {
+                            console.error('Impossible de créer l\'objet:', objData.type);
+                        }
+                        break;
+                }
+                
+                if (obj) {
+                    obj.type = objData.type;
+                    this.canvas.add(obj);
+                }
+                
+            } catch (objError) {
+                console.error('Erreur lors de la restauration d\'un objet:', objError);
+            }
+        });
+        
+        this.canvas.renderAll();
+    }
+
+    /**
+     * Recréation des objets complexes (groupes)
+     * @param {Object} objData - Données de l'objet
+     * @returns {fabric.Object} Objet recréé
+     */
+    recreateComplexObject(objData) {
+        try {
+            const left = objData.left || 0;
+            const top = objData.top || 0;
+            const opacity = objData.opacity || 1;
+            
+            switch(objData.type) {
+                case 'door':
+                    return this.createDoor(left, top, opacity);
+                    
+                case 'window':
+                    return this.createWindow(left, top, opacity);
+                    
+                case 'elevator':
+                    return this.createElevator(left, top, opacity);
+                    
+                case 'stairs':
+                    const width = objData.width || 80;
+                    const height = objData.height || 120;
+                    return this.createStairs(left, top, left + width, top + height, opacity);
+                    
+                case 'voile':
+                    const voileWidth = objData.width || 20;
+                    const voileHeight = objData.height || 100;
+                    return this.createVoile(left, top, left + voileWidth, top + voileHeight, 
+                                         objData.stroke || '#333333', objData.strokeWidth || 2, opacity);
+                    
+                case 'gaine':
+                    const gaineWidth = objData.width || 40;
+                    const gaineHeight = objData.height || 40;
+                    return this.createGaine(left, top, left + gaineWidth, top + gaineHeight,
+                                         objData.stroke || '#333333', objData.strokeWidth || 2, opacity);
+                    
+                case 'tech-space':
+                    return this.createTechSpace(left, top, opacity);
+                    
+                default:
+                    return new fabric.Rect({
+                        left: left,
+                        top: top,
+                        width: objData.width || 50,
+                        height: objData.height || 50,
+                        fill: 'rgba(200, 200, 200, 0.5)',
+                        stroke: '#666666',
+                        strokeWidth: 1,
+                        opacity: opacity
+                    });
+            }
+        } catch (error) {
+            console.error('Erreur lors de la recréation d\'un objet complexe:', error);
+            return new fabric.Rect({
+                left: objData.left || 0,
+                top: objData.top || 0,
+                width: 50,
+                height: 50,
+                fill: 'rgba(255, 0, 0, 0.3)',
+                stroke: '#ff0000',
+                strokeWidth: 1
+            });
+        }
+    }
+
+    /**
+     * Effacement du canevas
+     */
     clearCanvas() {
         if (confirm('Effacer tout le plan ?')) {
             this.canvas.clear();
@@ -1282,6 +1685,9 @@ class SimpleArchitectApp {
         }
     }
 
+    /**
+     * Sauvegarde du projet
+     */
     saveProject() {
         try {
             const cleanObjects = this.canvas.getObjects().filter(obj => 
@@ -1289,11 +1695,20 @@ class SimpleArchitectApp {
             );
             
             const safeObjects = cleanObjects.map(obj => {
-                const objData = obj.toObject();
-                delete objData.textAlign;
-                delete objData.textBaseline;
-                return objData;
-            });
+                try {
+                    const objData = obj.toObject(['type', 'customType', 'left', 'top', 'width', 'height', 'fill', 'stroke', 'strokeWidth', 'opacity', 'angle', 'scaleX', 'scaleY', 'x1', 'y1', 'x2', 'y2', 'radius', 'text', 'fontSize', 'fontFamily']);
+                    delete objData.textAlign;
+                    delete objData.textBaseline;
+                    delete objData.clipPath;
+                    
+                    objData.type = obj.customType || obj.type || 'rect';
+                    
+                    return objData;
+                } catch (error) {
+                    console.error('Erreur lors de la sérialisation d\'un objet:', error);
+                    return null;
+                }
+            }).filter(obj => obj !== null);
             
             const projectNameInput = document.getElementById('projectName');
             const projectName = projectNameInput?.value || 'Mon_Plan';
@@ -1321,11 +1736,14 @@ class SimpleArchitectApp {
                 saveStatus.textContent = '💾 Sauvegardé';
             }
         } catch (error) {
-            console.log('Erreur lors de la sauvegarde du projet:', error);
+            console.error('Erreur lors de la sauvegarde du projet:', error);
             alert('Erreur lors de la sauvegarde du projet');
         }
     }
 
+    /**
+     * Chargement d'un projet
+     */
     loadProject() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -1344,23 +1762,7 @@ class SimpleArchitectApp {
                         gridObjects.forEach(grid => this.canvas.add(grid));
                         
                         if (projectData.canvas && projectData.canvas.objects) {
-                            projectData.canvas.objects.forEach(objData => {
-                                try {
-                                    if (objData.textAlign) delete objData.textAlign;
-                                    if (objData.textBaseline) delete objData.textBaseline;
-                                    
-                                    fabric.util.enlivenObjects([objData], (objects) => {
-                                        objects.forEach(obj => {
-                                            if (obj && typeof obj === 'object') {
-                                                this.canvas.add(obj);
-                                            }
-                                        });
-                                        this.canvas.renderAll();
-                                    });
-                                } catch (objError) {
-                                    console.log('Erreur lors du chargement d\'un objet:', objError);
-                                }
-                            });
+                            this.loadObjectsFromData(projectData.canvas.objects);
                         }
 
                         if (projectData.name) {
@@ -1390,6 +1792,9 @@ class SimpleArchitectApp {
         input.click();
     }
 
+    /**
+     * Exportation du canevas en image
+     */
     exportImage() {
         try {
             const gridObjects = this.canvas.getObjects().filter(obj => obj.isGrid);
@@ -1412,12 +1817,14 @@ class SimpleArchitectApp {
             gridObjects.forEach(obj => obj.visible = true);
             this.canvas.renderAll();
         } catch (error) {
-            console.log('Erreur lors de l\'export:', error);
+            console.error('Erreur lors de l\'export:', error);
             alert('Erreur lors de l\'export de l\'image');
         }
     }
 
-    // Interface
+    /**
+     * Mise à jour du compteur d'objets
+     */
     updateObjectCount() {
         const objects = this.canvas.getObjects().filter(obj => 
             !obj.isGrid && !obj.isPreview && !obj.isEraserIndicator
@@ -1428,6 +1835,9 @@ class SimpleArchitectApp {
         }
     }
 
+    /**
+     * Mise à jour de l'interface utilisateur
+     */
     updateUI() {
         this.updateObjectCount();
         
@@ -1440,7 +1850,10 @@ class SimpleArchitectApp {
         if (opacityValue) opacityValue.textContent = '100%';
     }
 
-    // Raccourcis clavier
+    /**
+     * Gestion des raccourcis clavier
+     * @param {Object} e - Événement clavier
+     */
     handleKeyboard(e) {
         if (e.target.tagName === 'INPUT') return;
 
