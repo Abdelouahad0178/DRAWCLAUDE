@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ArchiDesign - Éditeur de Plans Simple</title>
+    <title>ArchiDesign - Éditeur de Plans Professionnel</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
 </head>
@@ -15,47 +15,98 @@
             <span class="save-status" id="saveStatus">💾 Prêt</span>
         </div>
         <div class="user-info">
-            <span>Mode Simple</span>
+            <span>Mode Professionnel</span>
+            <div class="version-info">v2.0</div>
         </div>
     </div>
 
     <div class="main-container">
-        <!-- Barre d'outils simplifiée -->
+        <!-- Barre d'outils complète -->
         <div class="toolbar">
             <div class="tool-section">
-                <h3>🎯 Outils</h3>
+                <h3>🎯 Outils de base</h3>
                 <div class="tool-grid">
-                    <button class="tool-btn active" data-tool="select">
+                    <button class="tool-btn active" data-tool="select" title="Sélection (1)">
                         <span class="tool-icon">✋</span>
                         <span>Sélection</span>
                     </button>
-                    <button class="tool-btn" data-tool="eraser">
+                    <button class="tool-btn" data-tool="eraser" title="Gomme (E)">
                         <span class="tool-icon">🧽</span>
                         <span>Gomme</span>
                     </button>
-                    <button class="tool-btn" data-tool="wall">
+                    <button class="tool-btn" data-tool="hand" title="Déplacement vue (H)">
+                        <span class="tool-icon">👋</span>
+                        <span>Déplacer</span>
+                    </button>
+                    <button class="tool-btn" data-tool="measure" title="Mesure (M)">
+                        <span class="tool-icon">📏</span>
+                        <span>Mesurer</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>🏗️ Structure</h3>
+                <div class="tool-grid">
+                    <button class="tool-btn" data-tool="wall" title="Mur (2)">
                         <span class="tool-icon">🧱</span>
                         <span>Mur</span>
                     </button>
-                    <button class="tool-btn" data-tool="voile">
+                    <button class="tool-btn" data-tool="voile" title="Voile béton">
                         <span class="tool-icon">🏗️</span>
                         <span>Voile</span>
                     </button>
-                    <button class="tool-btn" data-tool="door">
+                    <button class="tool-btn" data-tool="column" title="Poteau">
+                        <span class="tool-icon">🏛️</span>
+                        <span>Poteau</span>
+                    </button>
+                    <button class="tool-btn" data-tool="beam" title="Poutre">
+                        <span class="tool-icon">➖</span>
+                        <span>Poutre</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>🚪 Ouvertures</h3>
+                <div class="tool-grid">
+                    <button class="tool-btn" data-tool="door" title="Porte (3)">
                         <span class="tool-icon">🚪</span>
                         <span>Porte</span>
                     </button>
-                    <button class="tool-btn" data-tool="window">
+                    <button class="tool-btn" data-tool="window" title="Fenêtre (4)">
                         <span class="tool-icon">🪟</span>
                         <span>Fenêtre</span>
                     </button>
-                    <button class="tool-btn" data-tool="stairs">
+                    <button class="tool-btn" data-tool="french-door" title="Porte-fenêtre">
+                        <span class="tool-icon">🚪</span>
+                        <span>P.Fenêtre</span>
+                    </button>
+                    <button class="tool-btn" data-tool="bay-window" title="Baie vitrée">
+                        <span class="tool-icon">🪟</span>
+                        <span>Baie</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>🪜 Circulation</h3>
+                <div class="tool-grid">
+                    <button class="tool-btn" data-tool="stairs" title="Escalier">
                         <span class="tool-icon">🪜</span>
                         <span>Escalier</span>
                     </button>
-                    <button class="tool-btn" data-tool="elevator">
+                    <button class="tool-btn" data-tool="elevator" title="Ascenseur">
                         <span class="tool-icon">🛗</span>
                         <span>Ascenseur</span>
+                    </button>
+                    <button class="tool-btn" data-tool="ramp" title="Rampe">
+                        <span class="tool-icon">📐</span>
+                        <span>Rampe</span>
+                    </button>
+                    <button class="tool-btn" data-tool="balcony" title="Balcon">
+                        <span class="tool-icon">🏠</span>
+                        <span>Balcon</span>
                     </button>
                 </div>
             </div>
@@ -63,47 +114,83 @@
             <div class="tool-section">
                 <h3>🔧 Techniques</h3>
                 <div class="tool-grid">
-                    <button class="tool-btn" data-tool="gaine">
+                    <button class="tool-btn" data-tool="gaine" title="Gaine technique">
                         <span class="tool-icon">🔌</span>
                         <span>Gaine</span>
                     </button>
-                    <button class="tool-btn" data-tool="tech-space">
+                    <button class="tool-btn" data-tool="tech-space" title="Local technique">
                         <span class="tool-icon">⚙️</span>
-                        <span>R.Technique</span>
+                        <span>L.Technique</span>
                     </button>
-                    <button class="tool-btn" data-tool="rectangle">
+                    <button class="tool-btn" data-tool="hvac" title="CVC">
+                        <span class="tool-icon">🌡️</span>
+                        <span>CVC</span>
+                    </button>
+                    <button class="tool-btn" data-tool="electrical" title="Électrique">
+                        <span class="tool-icon">⚡</span>
+                        <span>Électrique</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>📐 Géométrie</h3>
+                <div class="tool-grid">
+                    <button class="tool-btn" data-tool="rectangle" title="Rectangle (5)">
                         <span class="tool-icon">▭</span>
                         <span>Rectangle</span>
                     </button>
-                    <button class="tool-btn" data-tool="circle">
+                    <button class="tool-btn" data-tool="circle" title="Cercle (6)">
                         <span class="tool-icon">⭕</span>
                         <span>Cercle</span>
                     </button>
-                    <button class="tool-btn" data-tool="line">
+                    <button class="tool-btn" data-tool="line" title="Ligne (L)">
                         <span class="tool-icon">➖</span>
                         <span>Ligne</span>
                     </button>
-                    <button class="tool-btn" data-tool="text">
+                    <button class="tool-btn" data-tool="polygon" title="Polygone">
+                        <span class="tool-icon">⬟</span>
+                        <span>Polygone</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>📝 Annotation</h3>
+                <div class="tool-grid">
+                    <button class="tool-btn" data-tool="text" title="Texte (T)">
                         <span class="tool-icon">📝</span>
                         <span>Texte</span>
+                    </button>
+                    <button class="tool-btn" data-tool="dimension" title="Cotation">
+                        <span class="tool-icon">📏</span>
+                        <span>Cotation</span>
+                    </button>
+                    <button class="tool-btn" data-tool="arrow" title="Flèche">
+                        <span class="tool-icon">🏹</span>
+                        <span>Flèche</span>
+                    </button>
+                    <button class="tool-btn" data-tool="label" title="Étiquette">
+                        <span class="tool-icon">🏷️</span>
+                        <span>Étiquette</span>
                     </button>
                 </div>
             </div>
 
             <div class="tool-section">
                 <h3>🎨 Propriétés</h3>
-                <div class="properties">
+                <div class="properties-panel">
                     <div class="prop-row">
-                        <label>Couleur de trait:</label>
+                        <label>Couleur trait:</label>
                         <input type="color" id="strokeColor" value="#333333">
                     </div>
                     <div class="prop-row">
-                        <label>Couleur de remplissage:</label>
+                        <label>Couleur remplissage:</label>
                         <input type="color" id="fillColor" value="#ffffff">
                     </div>
                     <div class="prop-row">
                         <label>Épaisseur:</label>
-                        <input type="range" id="strokeWidth" min="1" max="10" value="2">
+                        <input type="range" id="strokeWidth" min="1" max="20" value="2">
                         <span id="strokeValue">2</span>
                     </div>
                     <div class="prop-row">
@@ -111,12 +198,20 @@
                         <input type="range" id="opacity" min="0.1" max="1" step="0.1" value="1">
                         <span id="opacityValue">100%</span>
                     </div>
+                    <div class="prop-row">
+                        <label>Style trait:</label>
+                        <select id="strokeStyle">
+                            <option value="solid">Continu</option>
+                            <option value="dashed">Tirets</option>
+                            <option value="dotted">Pointillés</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
             <div class="tool-section">
                 <h3>⚙️ Paramètres</h3>
-                <div class="settings">
+                <div class="settings-panel">
                     <div class="setting-item">
                         <label>
                             <input type="checkbox" id="gridToggle" checked>
@@ -126,19 +221,36 @@
                     <div class="setting-item">
                         <label>
                             <input type="checkbox" id="snapToggle" checked>
-                            Accrochage automatique
+                            Accrochage grille
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="snapObjects" checked>
+                            Accrochage objets
                         </label>
                     </div>
                     <div class="setting-item">
                         <label>
                             <input type="checkbox" id="autoSelectToggle" checked>
-                            Revenir à la sélection après dessin
+                            Retour sélection auto
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="showDimensions">
+                            Afficher dimensions
                         </label>
                     </div>
                     <div class="prop-row">
                         <label>Zoom:</label>
-                        <input type="range" id="zoomSlider" min="0.5" max="3" step="0.1" value="1">
+                        <input type="range" id="zoomSlider" min="0.2" max="5" step="0.1" value="1">
                         <span id="zoomValue">100%</span>
+                    </div>
+                    <div class="prop-row">
+                        <label>Grille (cm):</label>
+                        <input type="range" id="gridSize" min="5" max="100" step="5" value="20">
+                        <span id="gridSizeValue">20</span>
                     </div>
                 </div>
             </div>
@@ -146,36 +258,138 @@
             <div class="tool-section">
                 <h3>📋 Actions</h3>
                 <div class="action-buttons">
-                    <button class="action-btn" id="undoBtn">↶ Annuler</button>
-                    <button class="action-btn" id="redoBtn">↷ Refaire</button>
+                    <button class="action-btn" id="undoBtn" title="Ctrl+Z">↶ Annuler</button>
+                    <button class="action-btn" id="redoBtn" title="Ctrl+Y">↷ Refaire</button>
+                    <button class="action-btn" id="copyBtn" title="Ctrl+C">📋 Copier</button>
+                    <button class="action-btn" id="pasteBtn" title="Ctrl+V">📄 Coller</button>
+                    <button class="action-btn" id="duplicateBtn" title="Ctrl+D">🔄 Dupliquer</button>
+                    <button class="action-btn" id="groupBtn" title="Ctrl+G">🗂️ Grouper</button>
                     <button class="action-btn" id="clearBtn">🗑️ Effacer</button>
-                    <button class="action-btn" id="saveBtn">💾 Sauvegarder</button>
-                    <button class="action-btn" id="loadBtn">📁 Charger</button>
+                    <button class="action-btn" id="saveBtn" title="Ctrl+S">💾 Sauvegarder</button>
+                    <button class="action-btn" id="loadBtn" title="Ctrl+O">📁 Charger</button>
                     <button class="action-btn" id="exportBtn">📸 Exporter</button>
+                    <button class="action-btn" id="printBtn" title="Ctrl+P">🖨️ Imprimer</button>
+                    <button class="action-btn" id="fullscreenBtn">🔍 Plein écran</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>📊 Informations</h3>
+                <div class="info-panel">
+                    <div class="info-item">
+                        <span class="info-label">Projet:</span>
+                        <span id="projectStatus">Nouveau</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Objets:</span>
+                        <span id="objectCount">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Sélection:</span>
+                        <span id="selectionCount">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Historique:</span>
+                        <span id="historyCount">1</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Zone de dessin -->
         <div class="canvas-area">
-            <div class="canvas-info">
-                <span id="cursorPos">Position: X: 0, Y: 0</span>
-                <span id="selection">Aucune sélection</span>
+            <div class="canvas-toolbar">
+                <div class="canvas-controls">
+                    <button class="control-btn" id="zoomInBtn" title="Zoom +">🔍+</button>
+                    <button class="control-btn" id="zoomOutBtn" title="Zoom -">🔍-</button>
+                    <button class="control-btn" id="zoomFitBtn" title="Ajuster">📐</button>
+                    <button class="control-btn" id="zoom100Btn" title="100%">1:1</button>
+                </div>
+                <div class="canvas-info">
+                    <span id="cursorPos">Position: X: 0, Y: 0</span>
+                    <span id="selection">Aucune sélection</span>
+                    <span id="canvasScale">Échelle: 1:100</span>
+                </div>
+                <div class="layer-controls">
+                    <button class="control-btn" id="layerBtn" title="Calques">📄</button>
+                    <button class="control-btn" id="gridBtn" title="Grille">⊞</button>
+                    <button class="control-btn" id="rulerBtn" title="Règles">📏</button>
+                </div>
             </div>
             
             <div class="canvas-wrapper">
-                <canvas id="canvas" width="900" height="600"></canvas>
+                <div class="rulers" id="rulers" style="display: none;">
+                    <div class="ruler-horizontal" id="rulerHorizontal"></div>
+                    <div class="ruler-vertical" id="rulerVertical"></div>
+                </div>
+                <canvas id="canvas" width="1200" height="800"></canvas>
+                <div class="canvas-overlay" id="canvasOverlay"></div>
             </div>
         </div>
     </div>
 
     <!-- Barre de statut -->
     <div class="status-bar">
-        <span id="objectCount">Objets: 0</span>
-        <span id="canvasInfo">900 × 600 px</span>
-        <span id="zoomInfo">Zoom: 100%</span>
+        <div class="status-left">
+            <span id="objectCount">Objets: 0</span>
+            <span id="selectionInfo">Aucune sélection</span>
+            <span id="toolInfo">Outil: Sélection</span>
+        </div>
+        <div class="status-center">
+            <span id="canvasInfo">1200 × 800 px</span>
+            <span id="scaleInfo">Échelle: 1:100</span>
+        </div>
+        <div class="status-right">
+            <span id="zoomInfo">Zoom: 100%</span>
+            <span id="gridInfo">Grille: 20cm</span>
+            <span id="memoryInfo">Mémoire: 0MB</span>
+        </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Panneaux modaux -->
+    <div class="modal-overlay" id="modalOverlay" style="display: none;">
+        <div class="modal" id="layerPanel">
+            <div class="modal-header">
+                <h3>📄 Gestion des calques</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="layer-list" id="layerList">
+                    <!-- Les calques seront ajoutés dynamiquement -->
+                </div>
+                <div class="layer-actions">
+                    <button class="action-btn" id="addLayerBtn">+ Nouveau calque</button>
+                    <button class="action-btn" id="deleteLayerBtn">🗑️ Supprimer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu contextuel -->
+    <div class="context-menu" id="contextMenu" style="display: none;">
+        <div class="context-item" data-action="copy">📋 Copier</div>
+        <div class="context-item" data-action="paste">📄 Coller</div>
+        <div class="context-item" data-action="duplicate">🔄 Dupliquer</div>
+        <div class="context-separator"></div>
+        <div class="context-item" data-action="bring-front">⬆️ Premier plan</div>
+        <div class="context-item" data-action="send-back">⬇️ Arrière plan</div>
+        <div class="context-separator"></div>
+        <div class="context-item" data-action="group">🗂️ Grouper</div>
+        <div class="context-item" data-action="ungroup">📂 Dégrouper</div>
+        <div class="context-separator"></div>
+        <div class="context-item" data-action="properties">⚙️ Propriétés</div>
+        <div class="context-item" data-action="delete">🗑️ Supprimer</div>
+    </div>
+
+    <!-- Scripts dans l'ordre de dépendance -->
+    <script src="utils.js"></script>
+    <script src="objects.js"></script>
+    <script src="canvas.js"></script>
+    <script src="tools.js"></script>
+    <script src="ui.js"></script>
+    <script src="history.js"></script>
+    <script src="layers.js"></script>
+    <script src="shortcuts.js"></script>
+    <script src="core.js"></script>
 </body>
 </html>
